@@ -1,1 +1,9 @@
-lazy-lock.json
+*
+
+!nvim
+!yazi
+!sway
+
+!/nvim/**
+!/yazi/**
+!/sway/**
