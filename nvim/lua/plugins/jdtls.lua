@@ -1,7 +1,10 @@
 return {
     "mfussenegger/nvim-jdtls",
+    dependencies = {
+        "williamboman/mason.nvim",
+    },
     ft = "java",
-    config = function()
+        config = function()
         local on_attach = function(client, bufnr)
             require("lspconfig").on_attach(client, bufnr)
         end
@@ -49,7 +52,7 @@ return {
             --on_attach = on_attach,
             capabilities = capabilities,
             root_dir = vim.fs.dirname(
-                vim.fs.find({ ".gradlew", ".git", "mvnw", "pom.xml", "build.gradle" }, { upward = true })[1]
+                vim.fs.find({ ".gradlew", ".git", "mvnw", "pom.xml", "build.gradle", ".classpath" }, { upward = true })[1]
             ),
 
             settings = {
@@ -76,12 +79,13 @@ return {
 
             init_options = {
                 bundles = bundles,
+                java_home = os.getenv("JAVA_HOME")
             },
         }
         vim.api.nvim_create_autocmd("FileType", {
             pattern = "java",
             callback = function()
-                require("jdtls").start_or_attach(config)
+                require("jdtls").start_or_attach(options)
             end,
         })
     end,
