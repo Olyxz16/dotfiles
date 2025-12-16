@@ -1,40 +1,15 @@
 return {
-        --[[{
-        "nvim-neo-tree/neo-tree.nvim",
-        branch = "v3.x",
+    {
+        "Olyxz16/triad.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
             "nvim-tree/nvim-web-devicons",
-            "MunifTanjim/nui.nvim",
         },
-        opts = {
-            filesystem = {
-                follow_current_file = {
-                    enabled = true,
-                    leave_dirs_open = true,
-                },
-                filtered_items = {
-                    hide_dotfiles = false,
-                    hide_gitignored = true,
-                    hide_by_name = {
-                        ".git",
-                    },
-                },
-                window = {
-                    mappings = {
-                        ["."] = "toggle_hidden",
-                        ["H"] = "set_root",
-                    },
-                },
-            },
-            window = {
-                mappings = {
-                    ["l"] = "open",
-                    ["h"] = "close_node",
-                },
-            },
-        },
-    },]]--
+        config = function()
+            require("triad").setup()
+        end,
+        cmd = "Triad",
+    },
     {
         "mikavilpas/yazi.nvim",
         version = "*", -- use the latest stable version
@@ -49,17 +24,6 @@ return {
                 mode = { "n", "v" },
                 "<cmd>Yazi<cr>",
                 desc = "Open yazi at the current file",
-            },
-            {
-                -- Open in the current working directory
-                "<leader>cw",
-                "<cmd>Yazi cwd<cr>",
-                desc = "Open the file manager in nvim's working directory",
-            },
-            {
-                "<c-up>",
-                "<cmd>Yazi toggle<cr>",
-                desc = "Resume the last yazi session",
             },
         },
         ---@type YaziConfig | {}

@@ -1,4 +1,4 @@
---vim.keymap.set('n', '<leader>e', ':Neotree toggle position=right<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>r', ':Triad<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<leader>t', ':belowright split<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<esc>', ':nohlsearch<CR>', { noremap = true, silent = true })
 
