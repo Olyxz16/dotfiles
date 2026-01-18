@@ -42,6 +42,8 @@ output * bg /usr/share/backgrounds/sway/OST1.png fill
           before-sleep 'swaylock -f -c 000000'
 
  exec albert
+
+ exec swaync
  
 ### Input configuration
 
@@ -221,3 +223,4 @@ default_floating_border none
 
 include /etc/sway/config.d/*
 include $HOME/.config/sway/config.d/*
+include $HOME/.config/sway/startup

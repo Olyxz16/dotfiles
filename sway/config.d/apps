@@ -1,0 +1,6 @@
+for_window [app_id="proton-authenticator"] floating enable
+for_window [app_id="Proton Pass"] floating enable
+for_window [class="Bitwarden"] floating enable
+
+assign [class="discord"] workspace number 2
+assign [app_id="Notesnook"] workspace number 3
