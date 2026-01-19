@@ -12,10 +12,10 @@ vim.wo.relativenumber = true
 vim.opt.swapfile = false
 vim.opt.encoding = 'utf8'
 
-vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
-vim.opt.foldlevel = 1
-vim.cmd("set nofoldenable")
+--vim.opt.foldmethod = "expr"
+--vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+--vim.opt.foldlevel = 1
+--vim.cmd("set nofoldenable")
 
 vim.cmd('set shada="NONE"')
 
