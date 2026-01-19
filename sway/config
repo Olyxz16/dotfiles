@@ -6,6 +6,11 @@
 
 ### Variables
 #
+
+exec export XDG_CURRENT_DESKTOP=sway
+exec export XDG_SESSION_DESKTOP=sway
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway XDG_SESSION_DESKTOP=sway
+
 # Logo key. Use Mod1 for Alt.
 set $mod Mod4
 # Home row direction keys, like vim
