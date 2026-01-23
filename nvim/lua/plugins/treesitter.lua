@@ -1,10 +1,9 @@
 return {
     {
         "nvim-treesitter/nvim-treesitter",
-        tag = "v0.9.2",
         build = ":TSUpdate",
         config = function()
-            local config = require("nvim-treesitter.configs")
+            local config = require("nvim-treesitter.config")
             vim.filetype.add({extension = { templ = "templ" }})
             config.setup({
                 auto_install = true,
