@@ -94,6 +94,9 @@ return {
                 vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, opts)
                 vim.keymap.set("n", "<leader>gr", vim.lsp.buf.references, opts)
                 vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+                vim.keymap.set("n", "<leader>gf", function()
+                    vim.lsp.buf.format { async = true }
+                end, opts)
             end,
         })
     end,
