@@ -1,25 +1,32 @@
-vim.cmd("set expandtab")
-vim.cmd("set tabstop=4")
-vim.cmd("set softtabstop=4")
-vim.cmd("set shiftwidth=4")
-vim.cmd("set mouse=a")
+vim.opt.expandtab = true
+vim.opt.tabstop = 4
+vim.opt.softtabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.mouse = "a"
 vim.g.mapleader = " "
-vim.g.background = "light"
+vim.g.background = "dark"
+vim.o.background = "dark"
 
-vim.wo.number = true
-vim.wo.relativenumber = true
+vim.opt.number = true
+vim.opt.relativenumber = true
 
 vim.opt.swapfile = false
-vim.opt.encoding = 'utf8'
 
---vim.opt.foldmethod = "expr"
---vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
---vim.opt.foldlevel = 1
---vim.cmd("set nofoldenable")
+vim.opt.shada = ""
 
-vim.cmd('set shada="NONE"')
+-- Set winborder for floating windows (replaces old vim.lsp.handlers border hacks)
+vim.o.winborder = 'rounded'
 
-vim.cmd('autocmd InsertEnter * :let @/=""')
+-- Enable diagnostic virtual text (disabled by default in 0.11)
+vim.diagnostic.config({
+    virtual_text = { current_line = true },
+})
+
+vim.api.nvim_create_autocmd('InsertEnter', {
+    callback = function()
+        vim.fn.setreg('/', '')
+    end,
+})
 
 vim.api.nvim_create_user_command('Jq', function()
     vim.cmd("exec '%!jq .'")
@@ -30,13 +37,13 @@ vim.keymap.set(
     {
         noremap = true,
         callback = function()
-            local scheme = vim.api.nvim_get_var("background")
-            print(scheme)
-            if scheme == "light"
-            then vim.api.nvim_set_var("background", "dark")
-                 vim.cmd("set background=dark")
-            else vim.api.nvim_set_var("background", "light")
-                 vim.cmd("set background=light")
+            local scheme = vim.g.background
+            if scheme == "light" then
+                vim.g.background = "dark"
+                vim.o.background = "dark"
+            else
+                vim.g.background = "light"
+                vim.o.background = "light"
             end
         end
     }

@@ -28,8 +28,8 @@ return {
         },
         ---@type YaziConfig | {}
         opts = {
-            -- if you want to open yazi instead of netrw, see below for more info
-            open_for_directories = false,
+            -- yazi replaces netrw for directory browsing
+            open_for_directories = true,
             keymaps = {
                 show_help = "<f1>",
             },
@@ -47,11 +47,17 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim"
         },
-        vim.keymap.set('n', '<leader><Tab>', ':lua require("harpoon.ui").toggle_quick_menu()<CR>', { noremap = true, silent = true }),
-        vim.keymap.set('n', '<leader>²', ':lua require("harpoon.mark").add_file()<CR>', { noremap = true, silent = true }), 
-        vim.api.nvim_create_user_command('Mark', function ()
-            require("harpoon.mark").add_file()
-        end, {})
+        config = function()
+            vim.keymap.set('n', '<leader><Tab>', function()
+                require("harpoon.ui").toggle_quick_menu()
+            end, { noremap = true, silent = true, desc = "Harpoon quick menu" })
+            vim.keymap.set('n', '<leader>²', function()
+                require("harpoon.mark").add_file()
+            end, { noremap = true, silent = true, desc = "Harpoon add file" })
+            vim.api.nvim_create_user_command('Mark', function()
+                require("harpoon.mark").add_file()
+            end, {})
+        end,
     }
     
 }

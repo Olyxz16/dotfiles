@@ -4,98 +4,99 @@ return {
         "williamboman/mason.nvim",
         "williamboman/mason-lspconfig.nvim",
         "hrsh7th/cmp-nvim-lsp",
-        "hrsh7th/nvim-cmp"
+        "hrsh7th/nvim-cmp",
     },
     config = function()
         require("mason").setup()
         require("mason-lspconfig").setup({
-            ensure_installed = { "cssls", "html", "tailwindcss" },
+            ensure_installed = { "cssls", "html", "tailwindcss", "lua_ls" },
             automatic_installation = true,
         })
 
         local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-        local function get_raw_config(server_name)
-            local ok, config = pcall(require, "lspconfig.server_configurations." .. server_name)
-            if ok then return config.default_config end
-            return {} -- Return empty table instead of erroring
+        -- Clangd --
+        -- Build the clangd cmd: if build/compile_commands.json exists, add --compile-commands-dir=build
+        local clangd_cmd = {
+            "clangd",
+            "--background-index",
+            "--clang-tidy",
+            "--query-driver=**/*gcc*,**/*g++*",
+        }
+        local build_ccjson = vim.fn.getcwd() .. "/build/compile_commands.json"
+        if vim.uv.fs_stat(build_ccjson) then
+            table.insert(clangd_cmd, "--compile-commands-dir=build")
         end
 
-        local function get_clangd_config()
-            local includeDir = vim.fn.getcwd() .. '/include'
-            return {
-                cmd = { 
-                    "clangd", 
-                    "--background-index", 
-                    "--clang-tidy",
-                    "--query-driver=**/*gcc*,**/*g++*" 
-                },
-                -- Explicitly set filetypes so we don't depend on the plugin
-                filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
-                init_options = { fallbackFlags = { '-I'..includeDir } },
-                on_new_config = function(new_config, new_root_dir)
-                    local build_file = new_root_dir .. "/build/compile_commands.json"
-                    if vim.loop.fs_stat(build_file) then
-                        local found = false
-                        for _, v in ipairs(new_config.cmd) do
-                            if v == "--compile-commands-dir=build" then found = true; break end
-                        end
-                        if not found then
-                            table.insert(new_config.cmd, "--compile-commands-dir=build")
-                        end
-                    end
-                end
-            }
-        end
-
-        local servers = {
-            clangd = get_clangd_config(),
-            
-            html = { 
-                filetypes = { "html", "templ" } 
+        vim.lsp.config.clangd = {
+            cmd = clangd_cmd,
+            filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
+            root_markers = { "compile_commands.json", "compile_flags.txt", ".clangd", ".git" },
+            init_options = {
+                fallbackFlags = { '-I' .. vim.fn.getcwd() .. '/include' },
             },
-            
-            cssls = { 
-                filetypes = { "css", "scss", "less" },
-                settings = { css = { lint = { unknowAtRules = "ignore" } } } 
-            },
-            
-            tailwindcss = {
-                filetypes = { "css", "templ", "astro", "javascript", "typescript", "html" },
-                init_options = { userLanguages = { templ = { "html" } } },
-            },
-            
+            capabilities = capabilities,
         }
 
-        for name, user_opts in pairs(servers) do
-            local defaults = get_raw_config(name)
-            
-            local final_config = vim.tbl_deep_extend("force", defaults, user_opts)
-            final_config.capabilities = vim.tbl_deep_extend("force", final_config.capabilities or {}, capabilities)
+        -- HTML --
+        vim.lsp.config.html = {
+            filetypes = { "html", "templ" },
+            root_markers = { "package.json", ".git" },
+            capabilities = capabilities,
+        }
 
-            vim.lsp.config[name] = final_config
+        -- CSS --
+        vim.lsp.config.cssls = {
+            filetypes = { "css", "scss", "less" },
+            root_markers = { "package.json", ".git" },
+            settings = {
+                css = { lint = { unknownAtRules = "ignore" } },
+            },
+            capabilities = capabilities,
+        }
 
-            local filetypes = user_opts.filetypes or defaults.filetypes
-            
-            if filetypes then
-                vim.api.nvim_create_autocmd("FileType", {
-                    pattern = filetypes,
-                    callback = function(args)
-                        vim.lsp.enable(name)
-                    end,
-                })
-            end
-        end
+        -- Tailwind CSS --
+        vim.lsp.config.tailwindcss = {
+            filetypes = { "css", "templ", "astro", "javascript", "typescript", "html" },
+            root_markers = { "tailwind.config.js", "tailwind.config.ts", "package.json", ".git" },
+            init_options = { userLanguages = { templ = "html" } },
+            capabilities = capabilities,
+        }
 
+        -- Lua LS (for Neovim config development) --
+        vim.lsp.config.lua_ls = {
+            filetypes = { "lua" },
+            root_markers = { ".luarc.json", ".luarc.jsonc", ".git" },
+            settings = {
+                Lua = {
+                    runtime = { version = "LuaJIT" },
+                    diagnostics = { globals = { "vim" } },
+                    workspace = {
+                        library = { vim.env.VIMRUNTIME },
+                        checkThirdParty = false,
+                    },
+                    telemetry = { enable = false },
+                },
+            },
+            capabilities = capabilities,
+        }
+
+        -- Enable all configured servers
+        vim.lsp.enable({ 'clangd', 'html', 'cssls', 'tailwindcss', 'lua_ls' })
+
+        -- Disable auto-discovered jdtls (nvim-jdtls ships lsp/jdtls.lua which Neovim
+        -- 0.11 picks up automatically). We manage jdtls ourselves via start_or_attach.
+        vim.lsp.enable('jdtls', false)
+
+        -- LSP keymaps on attach
+        -- Note: 0.11 provides defaults for K (hover), grr (references), gra (code_action),
+        -- grn (rename), gri (implementation). We keep format and definition keymaps.
         vim.api.nvim_create_autocmd("LspAttach", {
             callback = function(args)
                 local opts = { buffer = args.buf }
-                vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
                 vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, opts)
-                vim.keymap.set("n", "<leader>gr", vim.lsp.buf.references, opts)
-                vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
                 vim.keymap.set("n", "<leader>gf", function()
-                    vim.lsp.buf.format { async = true }
+                    vim.lsp.buf.format({ async = true })
                 end, opts)
             end,
         })

@@ -17,8 +17,6 @@ return {
                 },
             })
         end,
-        dependencies = {
-            'vrischmann/tree-sitter-templ'
-        }
+        -- tree-sitter-templ is now bundled in nvim-treesitter; no external dependency needed
     }
 }

@@ -1,24 +1,37 @@
 return {
     {
-        "nvim-telescope/telescope-ui-select.nvim",
-    },
-    {
-        "nvim-telescope/telescope.nvim",
-        tag = "0.1.5",
-        dependencies = { "nvim-lua/plenary.nvim" },
-        config = function()
-            require("telescope").setup({
-                extensions = {
-                    ["ui-select"] = {
-                        require("telescope.themes").get_dropdown({}),
-                    },
-                },
-            })
-            local builtin = require("telescope.builtin")
-            vim.keymap.set("n", "<c-Tab>", builtin.find_files, {})
-            vim.keymap.set("n", "<leader><leader>", builtin.live_grep, {})
-            vim.keymap.set("n", "<leader>fo", builtin.oldfiles, {})
-            require("telescope").load_extension("ui-select")
-        end,
-    },
+    "alexpasmantier/tv.nvim",
+    config = function()
+      local h = require('tv').handlers
+
+      require('tv').setup({
+        -- per-channel configurations
+        channels = {
+          -- `files`: fuzzy find files in your project
+          files = {
+            keybinding = '<C-p>',               -- Launch the files channel
+            -- what happens when you press a key
+            handlers = {
+              ['<CR>'] = h.open_as_files,         -- default: open selected files
+              ['<C-q>'] = h.send_to_quickfix,     -- send to quickfix list
+              ['<C-s>'] = h.open_in_split,       -- open in horizontal split
+              ['<C-v>'] = h.open_in_vsplit,      -- open in vertical split
+              ['<C-y>'] = h.copy_to_clipboard,   -- copy paths to clipboard
+            },
+          },
+          -- `text`: ripgrep search through file contents
+          text = {
+            keybinding = '<leader><leader>',
+            handlers = {
+              ['<CR>'] = h.open_at_line,         -- Jump to line:col in file
+              ['<C-q>'] = h.send_to_quickfix,    -- Send matches to quickfix
+              ['<C-s>'] = h.open_in_split,       -- Open in horizontal split
+              ['<C-v>'] = h.open_in_vsplit,      -- Open in vertical split
+              ['<C-y>'] = h.copy_to_clipboard,   -- Copy matches to clipboard
+            },
+          },
+        },
+      })
+    end,
+  }
 }
