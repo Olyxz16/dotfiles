@@ -49,8 +49,14 @@ return {
                 capabilities = capabilities,
             })
 
+            vim.lsp.config("jdtls", {
+                cmd = { "jdtls" },
+                root_markers = { ".git", "mvnw", "pom.xml", "build.gradle", ".classpath" },
+                filetypes = { "java" },
+            })
+
             -- Enable all configured servers
-            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss" })
+            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls" })
 
             vim.api.nvim_create_autocmd("LspAttach", {
                 callback = function(args)
@@ -62,6 +68,8 @@ return {
                     vim.keymap.set("n", "<leader>gf", function()
                         vim.lsp.buf.format({ async = true })
                     end, opts)
+
+                    vim.lsp.completion.enable(ture, args.client.id, args.buf, { autotrigger = true })
                 end,
             })
         end,

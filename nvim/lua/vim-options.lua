@@ -14,18 +14,16 @@ vim.opt.swapfile = false
 
 vim.opt.shada = ""
 
+vim.opt.completeopt = { "menu", "menuone", "noselect" }
+
+vim.opt.statusline = "%#StatusLine# %m %f %= %y %l:%c"
+
 -- Set winborder for floating windows (replaces old vim.lsp.handlers border hacks)
 vim.o.winborder = 'rounded'
 
 -- Enable diagnostic virtual text (disabled by default in 0.11)
 vim.diagnostic.config({
     virtual_text = { current_line = true },
-})
-
-vim.api.nvim_create_autocmd('InsertEnter', {
-    callback = function()
-        vim.fn.setreg('/', '')
-    end,
 })
 
 vim.api.nvim_create_user_command('Jq', function()

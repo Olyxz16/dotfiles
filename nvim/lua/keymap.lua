@@ -9,3 +9,5 @@ vim.keymap.set('n', '<c-h>', '<cmd>wincmd h<CR>')
 vim.keymap.set('n', '<c-l>', '<cmd>wincmd l<CR>')
 
 vim.keymap.set('n', '<Tab>', 'i')
+
+vim.keymap.set('n', '<leader>tr', vim.diagnostic.setqflist, { desc = "Diagnostic Quickfix" })
