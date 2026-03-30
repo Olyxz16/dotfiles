@@ -1,6 +1,10 @@
 return {
     {
     "alexpasmantier/tv.nvim",
+    keys = {
+        { "<C-p>", desc = "TV Files" },
+        { "<leader><leader>", desc = "TV Text" },
+    },
     config = function()
       local h = require('tv').handlers
 

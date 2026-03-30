@@ -47,17 +47,10 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim"
         },
-        config = function()
-            vim.keymap.set('n', '<leader><Tab>', function()
-                require("harpoon.ui").toggle_quick_menu()
-            end, { noremap = true, silent = true, desc = "Harpoon quick menu" })
-            vim.keymap.set('n', '<leader>²', function()
-                require("harpoon.mark").add_file()
-            end, { noremap = true, silent = true, desc = "Harpoon add file" })
-            vim.api.nvim_create_user_command('Mark', function()
-                require("harpoon.mark").add_file()
-            end, {})
-        end,
+        keys = {
+            { "<leader><Tab>", function() require("harpoon.ui").toggle_quick_menu() end, desc = "Harpoon quick menu" },
+            { "<leader>²", function() require("harpoon.mark").add_file() end, desc = "Harpoon add file" },
+        },
     }
     
 }

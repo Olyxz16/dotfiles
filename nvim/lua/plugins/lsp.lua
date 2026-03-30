@@ -7,17 +7,11 @@ return {
     },
     {
         "neovim/nvim-lspconfig",
+        event = { "BufReadPre", "BufNewFile" },
         dependencies = {
             "williamboman/mason.nvim",
-            "hrsh7th/cmp-nvim-lsp",
         },
         config = function()
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-            -- Define each server's config directly.
-            -- vim.lsp.config sets the config; vim.lsp.enable activates it.
-            -- 0.12: servers auto-attach when their filetype is opened.
-
             vim.lsp.config("clangd", {
                 cmd = {
                     "clangd",
@@ -29,24 +23,20 @@ return {
                 init_options = {
                     fallbackFlags = { "-I" .. vim.fn.getcwd() .. "/include" },
                 },
-                capabilities = capabilities,
             })
 
             vim.lsp.config("html", {
                 filetypes = { "html", "templ" },
-                capabilities = capabilities,
             })
 
             vim.lsp.config("cssls", {
                 filetypes = { "css", "scss", "less" },
                 settings = { css = { lint = { unknownAtRules = "ignore" } } },
-                capabilities = capabilities,
             })
 
             vim.lsp.config("tailwindcss", {
                 filetypes = { "css", "templ", "astro", "javascript", "typescript", "html" },
                 init_options = { userLanguages = { templ = "html" } },
-                capabilities = capabilities,
             })
 
             vim.lsp.config("jdtls", {
