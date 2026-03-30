@@ -5,6 +5,7 @@ return {
         "williamboman/mason-lspconfig.nvim",
         "hrsh7th/cmp-nvim-lsp",
         "hrsh7th/nvim-cmp",
+        { "imroc/kubeschema.nvim", opts = {} },
     },
     config = function()
         require("mason").setup()
@@ -63,6 +64,24 @@ return {
             capabilities = capabilities,
         }
 
+        -- YAML (with kubeschema for Kubernetes support) --
+        vim.lsp.config.yamlls = {
+            filetypes = { "yaml", "yaml.docker-compose" },
+            root_markers = { ".git" },
+            capabilities = vim.tbl_deep_extend("force", capabilities, {
+                workspace = { didChangeConfiguration = { dynamicRegistration = true } },
+            }),
+            on_attach = require("kubeschema").on_attach,
+            on_new_config = function(new_config)
+                new_config.settings.yaml = vim.tbl_deep_extend("force", new_config.settings.yaml or {}, {
+                    validate = true,
+                    hover = true,
+                    completion = true,
+                    schemaStore = { enable = false, url = "" },
+                })
+            end,
+        }
+
         -- Lua LS (for Neovim config development) --
         vim.lsp.config.lua_ls = {
             filetypes = { "lua" },
@@ -82,7 +101,7 @@ return {
         }
 
         -- Enable all configured servers
-        vim.lsp.enable({ 'clangd', 'html', 'cssls', 'tailwindcss', 'lua_ls' })
+        vim.lsp.enable({ 'clangd', 'html', 'cssls', 'tailwindcss', 'lua_ls', 'yamlls' })
 
         -- Disable auto-discovered jdtls (nvim-jdtls ships lsp/jdtls.lua which Neovim
         -- 0.11 picks up automatically). We manage jdtls ourselves via start_or_attach.

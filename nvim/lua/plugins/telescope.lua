@@ -24,7 +24,7 @@ return {
             keybinding = '<leader><leader>',
             handlers = {
               ['<CR>'] = h.open_at_line,         -- Jump to line:col in file
-              ['<C-q>'] = h.send_to_quickfix,    -- Send matches to quickfix
+              ['<C-q>'] = h.send_to_quickfix,  -- Send matches to quickfix
               ['<C-s>'] = h.open_in_split,       -- Open in horizontal split
               ['<C-v>'] = h.open_in_vsplit,      -- Open in vertical split
               ['<C-y>'] = h.copy_to_clipboard,   -- Copy matches to clipboard
