@@ -11,6 +11,9 @@ if not vim.uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Enable the experimental Neovim 0.12 UI
+require('vim._core.ui2').enable({})
+
 require("vim-options")
 require("keymap")
 require("lazy").setup("plugins")
