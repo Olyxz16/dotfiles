@@ -4,8 +4,7 @@ vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.mouse = "a"
 vim.g.mapleader = " "
-vim.g.background = "dark"
-vim.o.background = "dark"
+
 
 vim.opt.number = true
 vim.opt.relativenumber = true
