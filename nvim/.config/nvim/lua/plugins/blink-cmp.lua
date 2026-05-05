@@ -8,6 +8,7 @@ return {
     opts = {
         keymap = {
             preset = "enter",
+            ['<C-k>'] = { 'show_documentation', 'hide_documentation' },
         },
         appearance = {
             use_nvim_cmp_as_default = false,
@@ -15,11 +16,16 @@ return {
         },
         completion = {
             menu = {
-                border = "rounded",
+                border = "none",
+                draw = {
+                    columns = { { "label", "label_description", gap = 1 }, { "kind" } },
+                },
             },
             documentation = {
-                auto_show = true,
-                auto_show_delay_ms = 200,
+                auto_show = false,
+            },
+            ghost_text = {
+                enabled = false,
             },
         },
         sources = {

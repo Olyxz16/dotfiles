@@ -53,7 +53,7 @@ return {
             })
 
             -- 3. Enable Servers Natively
-            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls" })
+            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls", "gopls" })
 
             -- 4. Handle Attachments (Keymaps, Completion, Formatting)
             vim.api.nvim_create_autocmd("LspAttach", {
