@@ -104,6 +104,12 @@ Architectures: amd64
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 
+    # --- Ghostty ---
+    info "Adding Ghostty repository"
+    warn "Ghostty installation is community-only, be careful"
+    sudo curl -fsSL https://debian.griffo.io/EA0F721D231FDD3A0A17B9AC7808B4DD62C41256.asc | sudo gpg --dearmor -o /usr/share/keyrings/debian.griffo.io.gpg
+    echo "deb [signed-by=/usr/share/keyrings/debian.griffo.io.gpg] https://debian.griffo.io/apt $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/debian.griffo.io.list
+
     # --- VS Code ---
     info "Adding VS Code repository..."
     curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
