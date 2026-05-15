@@ -48,8 +48,8 @@ exec swayidle -w \
     before-sleep 'swaylock -f -c 000000'
 
  exec albert
-
  exec swaync
+ exec_always ibus-daemon -rxRd
  
 ### Input configuration
 
