@@ -70,7 +70,7 @@ return {
                     vim.keymap.set("n", "<leader>gr", vim.lsp.buf.references, opts)
                     vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
                     
-                    -- Native Format on Save
+                    --[[-- Native Format on Save
                     if client:supports_method("textDocument/formatting") then
                         vim.api.nvim_create_autocmd("BufWritePre", {
                             buffer = args.buf,
@@ -79,6 +79,7 @@ return {
                             end,
                         })
                     end
+                    ]]--
                 end,
             })
         end,

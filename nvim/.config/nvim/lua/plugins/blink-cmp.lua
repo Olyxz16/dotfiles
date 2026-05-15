@@ -29,10 +29,7 @@ return {
             },
         },
         sources = {
-            default = { "lsp", "path", "snippets", "buffer" },
-        },
-        snippets = {
-            preset = "default",
+            default = { "lsp", "path", "buffer" },
         },
         fuzzy = {
             implementation = "prefer_rust_with_warning",
