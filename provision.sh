@@ -214,9 +214,6 @@ install_apt_packages() {
         chromium iwd vainfo wev
 
         k6
-
-        # Steam (from non-free repo)
-        steam
     )
 
     info "Installing Debian bookworm packages..."
@@ -385,6 +382,11 @@ install_toolchains() {
     su - "$USER_NAME" -c 'export SDKMAN_DIR="$USER_HOME/.sdkman"; [ -s "$HOME/.sdkman/bin/sdkman-init.sh" ] && source "$HOME/.sdkman/bin/sdkman-init.sh"; sdk install java 8.0.482-tem; sdk install java 21.0.6-tem'
     log "SDKMAN + Java 8 & 21 installed"
 
+    # --- k9s ---
+    info "Installing k9s system-wide"
+    curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | tar -xzf - -C /usr/local/bin k9s
+    log "k9s installed"
+
     # --- Docker post-install ---
     info "Configuring Docker..."
     usermod -aG docker "$USER_NAME"
@@ -411,7 +413,7 @@ setup_dotfiles() {
 
     git clone https://github.com/Olyxz16/dotfiles .dotfiles
     cd ~/.dotfiles
-    stow nvim sway yazi
+    stow bash nvim sway waybar yazi
 
 }
 
@@ -420,7 +422,7 @@ setup_dotfiles() {
 # ============================================================================
 post_install() {
     echo ""
-    echo ">>> [8/8] Migration complete !"
+    echo ">>> [8/8] Provisionning complete !"
 
     if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
         echo -e "${YELLOW}Failed packages (${#FAILED_PACKAGES[@]}):${NC}"
@@ -430,33 +432,12 @@ post_install() {
         echo ""
     fi
 
-    echo -e "${BLUE}=== Manual installation required ===${NC}"
-    echo ""
-    echo "The following packages need manual installation:"
-    echo ""
-    echo "  --- Applications not in Debian repos ---"
-    echo ""
-    echo "  k9s (Kubernetes CLI):"
-    echo "    curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | tar -xzf - -C /usr/local/bin k9s"
-    echo ""
-    echo "  Flutter:"
-    echo "    Install via: git clone https://github.com/flutter/flutter.git -b stable ~/.flutter"
-    echo ""
-    echo "  --- Neovim via Bob ---"
-    echo "  Neovim is managed by Bob (not apt) for always-latest versions."
-    echo "  Bob should have installed neovim-latest during setup."
-    echo "  If not, run: bob install latest && bob use latest"
-    echo "  Or pin a specific version: bob install v0.10.0 && bob use v0.10.0"
-    echo ""
-    echo "  --- Discord ---"
-    echo "  Discord is installed via Flatpak for automatic updates."
-    echo "  Update with: flatpak update"
     echo ""
     echo -e "${BLUE}=== Post-install steps ===${NC}"
     echo ""
     echo "  Log out and back in for Docker group to take effect"
     echo ""
-    echo -e "${GREEN}Done! Your LMDE system is set up.${NC}"
+    echo -e "${GREEN}Done! Your system is set up.${NC}"
 }
 
 # ============================================================================
