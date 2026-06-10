@@ -130,9 +130,10 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 . "$HOME/.cargo/env"
 
-export QTDIR=~/.Qt/6.10.2/gcc_64/
-export PATH="$QTDIR/bin:$PATH"
-export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+#export QTDIR=~/.Qt/6.10.2/gcc_64
+#export PATH="$QTDIR/bin:$PATH"
+#export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+#export PKG_CONFIG_PATH="$QTDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 export PATH=/usr/local/go/bin:$PATH
 #export PATH=$HOME/.local/share/bob/nvim-bin:$PATH
@@ -174,3 +175,7 @@ export DISCORD_IPC_PATH="/run/user/$UID/app/com.discordapp.Discord/discord-ipc-0
 if [ -e "$DISCORD_IPC_PATH" ]; then
     ln -sf "$DISCORD_IPC_PATH" "/run/user/$UID/discord-ipc-0"
 fi
+export PATH="$HOME/.dotnet:$PATH"
+
+# Added by LM Studio CLI tool (lms)
+export PATH="$PATH:/home/olyxz/.lmstudio/bin"
