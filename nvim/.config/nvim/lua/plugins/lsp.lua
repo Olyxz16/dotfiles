@@ -52,8 +52,21 @@ return {
                 }
             })
 
+            vim.filetype.add({ extension = { svelte = "svelte" } })
+            vim.lsp.config("svelteserver", {
+                filetypes = { "svelte" },
+                init_options = { configurationSection = { "css", "svelte" } },
+            })
+
+            vim.lsp.config("ts_ls", {
+                filetypes = { "typescript", "typescriptreact", "typescript.tsx", "javascript", "javascriptreact", "javascript.jsx" },
+                settings = {
+                    completions = { completeFunctionCalls = true },
+                },
+            })
+
             -- 3. Enable Servers Natively
-            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls", "gopls" })
+            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls", "gopls", "svelte", "ts_ls" })
 
             -- 4. Handle Attachments (Keymaps, Completion, Formatting)
             vim.api.nvim_create_autocmd("LspAttach", {
