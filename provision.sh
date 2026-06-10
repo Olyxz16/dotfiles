@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# This script:
-#   1. Updates the system & enables non-free repos
-#   2. Adds third-party apt repositories (adapted for Debian bookworm)
-#   3. Installs packages from apt (including Steam, Neovim via Bob, no Discord deb)
-#   4. Installs Flatpak applications (including Discord for auto-updates)
-#   5. Installs dev toolchains (nvm, Bob/neovim, rustup, Go, SDKMAN)
-#   6. Restores pip & npm packages (from backup files)
-#   7. Prints manual installation instructions for what it can't automate
+# Debian Bookworm Provisioning Script
 # ============================================================================
 
 set -uo pipefail
@@ -26,11 +19,129 @@ info() { echo -e "${BLUE}[INFO]${NC} $*"; }
 FAILED_PACKAGES=()
 
 # ============================================================================
+# REPO DEFINITIONS
+# To add a new repo, just append an entry to this array.
+#
+# Format (one entry = one string, fields separated by |):
+#   name|gpg_url|gpg_dest|repo_line
+#
+# Fields:
+#   name      - used for the .list filename (/etc/apt/sources.list.d/<name>.list)
+#   gpg_url   - URL to fetch the GPG key from (raw .asc or .gpg)
+#   gpg_dest  - where to save the key on disk
+#   repo_line - the full "deb [signed-by=...] ..." line
+#
+# The key file is only downloaded if it doesn't already exist.
+# The .list file is only written if it doesn't already exist or its content changed.
+# ============================================================================
+declare -a REPOS=(
+    "vscode|https://packages.microsoft.com/keys/microsoft.asc|/usr/share/keyrings/microsoft-archive-keyring.gpg|deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main"
+    "tailscale|https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg|/usr/share/keyrings/tailscale-archive-keyring.gpg|deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/debian bookworm main"
+    "k6|https://dl.k6.io/key.gpg|/usr/share/keyrings/k6-archive-keyring.gpg|deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main"
+    "github-cli|https://cli.github.com/packages/githubcli-archive-keyring.gpg|/etc/apt/keyrings/githubcli-archive-keyring.gpg|deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+    "git-lfs|https://packagecloud.io/github/git-lfs/gpgkey|/etc/apt/keyrings/github_git-lfs-archive-keyring.gpg|deb [arch=amd64 signed-by=/etc/apt/keyrings/github_git-lfs-archive-keyring.gpg] https://packagecloud.io/github/git-lfs/debian/ bookworm main"
+    "kitware|https://apt.kitware.com/keys/kitware-archive-latest.asc|/usr/share/keyrings/kitware-archive-keyring.gpg|deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main"
+    "task|https://dl.cloudsmith.io/public/task/task/gpg.key|/usr/share/keyrings/task-task-archive-keyring.gpg|deb [signed-by=/usr/share/keyrings/task-task-archive-keyring.gpg] https://dl.cloudsmith.io/public/task/task/deb/debian bookworm main"
+    "intel-oneapi|https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB|/usr/share/keyrings/oneapi-archive-keyring.gpg|deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main"
+    "microsoft-prod|https://packages.microsoft.com/keys/microsoft.asc|/usr/share/keyrings/microsoft-prod.gpg|deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main"
+    "beekeeper-studio|https://deb.beekeeperstudio.io/beekeeper.key|/usr/share/keyrings/beekeeper.gpg|deb [signed-by=/usr/share/keyrings/beekeeper.gpg] https://deb.beekeeperstudio.io stable main"
+    "spotify|https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc|/etc/apt/trusted.gpg.d/spotify.gpg|deb https://repository.spotify.com stable non-free"
+)
+
+# Docker uses DEB822 format, handled separately below
+# If you need more DEB822 repos, add them to REPOS_DEB822
+declare -a REPOS_DEB822=(
+    # Format: name|gpg_url|gpg_dest|uris|suites|components|architectures
+    # Leave architectures empty if not needed
+    "docker|https://download.docker.com/linux/debian/gpg|/etc/apt/keyrings/docker.asc|https://download.docker.com/linux/debian|bookworm|stable|amd64"
+)
+
+# ============================================================================
+# REPO ENGINE
+# ============================================================================
+
+# Writes a file only if it doesn't exist or content has changed
+write_if_changed() {
+    local path="$1"
+    local content="$2"
+    if [ -f "$path" ] && [ "$(cat "$path")" = "$content" ]; then
+        return 0  # unchanged
+    fi
+    printf '%s\n' "$content" > "$path"
+    return 1  # written
+}
+
+# Fetches a GPG key (handles both armored .asc and binary .gpg)
+fetch_gpg_key() {
+    local url="$1"
+    local dest="$2"
+    if [ -f "$dest" ]; then
+        return 0
+    fi
+    info "Fetching GPG key: $url"
+    local tmp
+    tmp=$(mktemp)
+    curl -fsSL "$url" -o "$tmp"
+    # Detect if armored (ASCII) and dearmor if needed
+    if file "$tmp" | grep -q "PGP public key block\|OpenPGP Public Key\|ASCII"; then
+        gpg --dearmor < "$tmp" > "$dest"
+    else
+        cp "$tmp" "$dest"
+    fi
+    chmod 644 "$dest"
+    rm -f "$tmp"
+}
+
+add_repos() {
+    echo ""
+    echo ">>> [3/8] Adding third-party repositories..."
+
+    install -m 0755 -d /etc/apt/keyrings
+
+    # --- Standard .list repos ---
+    for entry in "${REPOS[@]}"; do
+        IFS='|' read -r name gpg_url gpg_dest repo_line <<< "$entry"
+        info "Configuring repo: $name"
+        fetch_gpg_key "$gpg_url" "$gpg_dest"
+        local list_file="/etc/apt/sources.list.d/${name}.list"
+        if write_if_changed "$list_file" "$repo_line"; then
+            : # no change
+        else
+            info "Written: $list_file"
+        fi
+    done
+
+    # --- DEB822 .sources repos ---
+    for entry in "${REPOS_DEB822[@]}"; do
+        IFS='|' read -r name gpg_url gpg_dest uris suites components architectures <<< "$entry"
+        info "Configuring DEB822 repo: $name"
+        fetch_gpg_key "$gpg_url" "$gpg_dest"
+        local sources_file="/etc/apt/sources.list.d/${name}.sources"
+        local content="Types: deb
+URIs: $uris
+Suites: $suites
+Components: $components"
+        [ -n "$architectures" ] && content+="
+Architectures: $architectures"
+        content+="
+Signed-By: $gpg_dest"
+        if write_if_changed "$sources_file" "$content"; then
+            : # no change
+        else
+            info "Written: $sources_file"
+        fi
+    done
+
+    apt-get update -y
+    log "Repositories configured"
+}
+
+# ============================================================================
 # SECTION 0: Pre-flight checks
 # ============================================================================
 preflight() {
     echo "========================================="
-    echo "  Debian Installation script"
+    echo "  Debian Provisioning Script"
     echo "========================================="
     echo ""
 
@@ -60,9 +171,7 @@ system_update() {
     apt-get update -y
     apt-get upgrade -y
 
-    # Enable contrib, non-free, and non-free-firmware on all relevant lines
     sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/official-package-repositories.list 2>/dev/null || true
-    sed -i '/^# deb-src/s/^# //' /etc/apt/sources.list.d/official-package-repositories.list 2>/dev/null || true
 
     apt-get update -y
     log "System updated and non-free repos enabled"
@@ -76,94 +185,8 @@ install_prerequisites() {
     echo ">>> [2/8] Installing prerequisites..."
     apt-get install -y \
         curl wget gnupg2 ca-certificates lsb-release apt-transport-https \
-        software-properties-common dirmngr unzip
+        software-properties-common dirmngr unzip file
     log "Prerequisites installed"
-}
-
-# ============================================================================
-# SECTION 3: Add third-party apt repositories
-# ============================================================================
-add_repos() {
-    echo ""
-    echo ">>> [3/8] Adding third-party repositories..."
-
-    install -m 0755 -d /etc/apt/keyrings
-
-    # --- Docker CE ---
-    # NOTE: LMDE's VERSION_CODENAME is "faye", not "bookworm". Hardcode bookworm.
-    # Uses DEB822 .sources format per official Docker docs.
-    info "Adding Docker CE repository..."
-    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-    chmod a+r /etc/apt/keyrings/docker.asc
-    cat > /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: bookworm
-Components: stable
-Architectures: amd64
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-
-    # --- Ghostty ---
-    info "Adding Ghostty repository"
-    warn "Ghostty installation is community-only, be careful"
-    sudo curl -fsSL https://debian.griffo.io/EA0F721D231FDD3A0A17B9AC7808B4DD62C41256.asc | sudo gpg --dearmor -o /usr/share/keyrings/debian.griffo.io.gpg
-    echo "deb [signed-by=/usr/share/keyrings/debian.griffo.io.gpg] https://debian.griffo.io/apt $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/debian.griffo.io.list
-
-    # --- VS Code ---
-    info "Adding VS Code repository..."
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
-
-    # --- Tailscale ---
-    info "Adding Tailscale repository..."
-    curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-    curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list >/dev/null
-
-    # --- K6 ---
-    curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-
-    # --- GitHub CLI ---
-    # Suite is "stable main" per official docs, NOT "debian bookworm main"
-    info "Adding GitHub CLI repository..."
-    wget -qO /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg
-    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
-
-    # --- Git LFS ---
-    info "Adding Git LFS repository..."
-    curl -fsSL https://packagecloud.io/github/git-lfs/gpgkey | gpg --dearmor -o /etc/apt/keyrings/github_git-lfs-archive-keyring.gpg
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/github_git-lfs-archive-keyring.gpg] https://packagecloud.io/github/git-lfs/debian/ bookworm main" > /etc/apt/sources.list.d/git-lfs.list
-
-    # --- Kitware (CMake) ---
-    # NOTE: Kitware only supports Ubuntu repos. Use noble (24.04) on Debian bookworm.
-    info "Adding Kitware CMake repository..."
-    curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor -o /usr/share/keyrings/kitware-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main" > /etc/apt/sources.list.d/kitware.list
-
-    # --- Task (Go Task runner) ---
-    info "Adding Task repository..."
-    curl -fsSL https://dl.cloudsmith.io/public/task/task/gpg.key | gpg --dearmor -o /usr/share/keyrings/task-task-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/task-task-archive-keyring.gpg] https://dl.cloudsmith.io/public/task/task/deb/debian bookworm main" > /etc/apt/sources.list.d/task.list
-
-    # --- Intel oneAPI ---
-    info "Adding Intel oneAPI repository..."
-    curl -fsSL https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor -o /usr/share/keyrings/oneapi-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/intel-oneapi.list
-
-    # --- .NET / Microsoft ---
-    info "Adding Microsoft .NET repository..."
-    if [ ! -f /etc/apt/sources.list.d/microsoft-prod.list ]; then
-        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list
-    fi
-
-    # --- Beekeeper Studio ---
-    info "Adding Beekeeper Studio repository..."
-    curl -fsSL https://deb.beekeeperstudio.io/beekeeper.key | gpg --dearmor -o /usr/share/keyrings/beekeeper.gpg
-    echo "deb [signed-by=/usr/share/keyrings/beekeeper.gpg] https://deb.beekeeperstudio.io stable main" > /etc/apt/sources.list.d/beekeeper-studio.list
-
 }
 
 # ============================================================================
@@ -173,12 +196,10 @@ install_apt_packages() {
     echo ""
     echo ">>> [4/8] Installing apt packages..."
 
-    # --- Steam: enable i386 multiarch first ---
     info "Enabling i386 multiarch for Steam..."
     dpkg --add-architecture i386 2>/dev/null || true
     apt-get update -y 2>/dev/null || true
 
-    # Packages available directly in Debian bookworm
     local debian_packages=(
         7zip age bat bear bison brightnessctl build-essential clang clinfo
         cmake curl direnv doxygen efibootmgr fd-find ffmpeg fonts-firacode fzf
@@ -188,19 +209,11 @@ install_apt_packages() {
         python3-pip python3-netifaces qemu-system-x86 qemu-utils ripgrep
         screen sqlite3 stow texlive-full tree vulkan-tools wayland-protocols
         wget xclip zoxide
-
-        # Sway + Waybar (alongside Cinnamon)
-        sway swaybg swayidle swaylock waybar
-
-        # Desktop utilities
+        sway swaybg swayidle swaylock waybar fuzzel
         gnome-tweaks gparted
-
-        # Input method packages
         ibus-table-cangjie-big ibus-table-cangjie3 ibus-table-cangjie5
         libchewing3 libchewing3-data libm17n-0 libopencc-data libopencc1.1
         libotf1 libpinyin-data libpinyin15 m17n-db libmarisa0
-
-        # Development libraries
         libadwaita-1-dev libavahi-client-dev libavahi-gobject-dev
         libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev
         libdrm-dev libegl1-mesa-dev libgbm-dev libgdk-pixbuf2.0-0 libgl1-mesa-dev
@@ -213,88 +226,67 @@ install_apt_packages() {
         libxcb-icccm4-dev libxcb-image0-dev libxcb-render0-dev libxcb-xfixes0-dev
         libxcb-xinput-dev libxcursor-dev libxi-dev libxinerama-dev
         libxkbcommon-dev libxrandr-dev libxxf86vm-dev
-
         qtconnectivity5-dev spirv-headers spirv-tools
-
-        # Chromium, iwd, vainfo, wev (wayland event viewer)
         chromium iwd vainfo wev
-
         k6
     )
 
     info "Installing Debian bookworm packages..."
     for pkg in "${debian_packages[@]}"; do
         if apt-get install -y "$pkg" 2>/dev/null; then
-            : # installed successfully
+            :
         else
             warn "Could not install: $pkg"
             FAILED_PACKAGES+=("$pkg")
         fi
     done
 
-    # Packages from third-party repos
     local third_party_packages=(
         code
         docker-ce docker-compose-plugin
         tailscale
         beekeeper-studio
-        gh
-        git-lfs
+        gh git-lfs
         task
         cmake
         intel-basekit intel-gsc intel-media-va-driver-non-free intel-opencl-icd
         dotnet-sdk-10.0 aspnetcore-runtime-10.0
+        spotify-client
     )
 
     info "Installing third-party repo packages..."
     for pkg in "${third_party_packages[@]}"; do
         if apt-get install -y "$pkg" 2>/dev/null; then
-            : # installed successfully
+            :
         else
             warn "Could not install: $pkg"
             FAILED_PACKAGES+=("$pkg")
         fi
     done
 
-    # Best-effort packages (may not be available on bookworm or different naming)
     local best_effort_packages=(
-        grimshot
-        libwebkit2gtk-4.1-dev
+        grimshot libwebkit2gtk-4.1-dev
         libwebkitgtk-6.0-dev libwebkitgtk-6.0-4
         libmfx-gen1 libze1 libze-intel-gpu1
-        libva-glx2
-        libncurses5 libtinfo5
+        libva-glx2 libncurses5 libtinfo5
     )
 
-    info "Installing best-effort packages (some may not be available)..."
+    info "Installing best-effort packages..."
     for pkg in "${best_effort_packages[@]}"; do
-        if apt-get install -y "$pkg" 2>/dev/null; then
-            : # installed successfully
-        else
-            warn "Not available on bookworm: $pkg (skipping)"
-            FAILED_PACKAGES+=("$pkg")
-        fi
+        apt-get install -y "$pkg" 2>/dev/null || warn "Not available: $pkg (skipping)"
     done
 
     log "apt package installation complete"
-    if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
-        echo ""
-        warn "The following packages could not be installed:"
-        for pkg in "${FAILED_PACKAGES[@]}"; do
-            echo "  - $pkg"
-        done
-    fi
 }
 
 # ============================================================================
-# SECTION 5: Install Flatpak applications
+# SECTION 5: Flatpak
 # ============================================================================
 install_flatpaks() {
     echo ""
     echo ">>> [5/8] Installing Flatpak applications..."
 
     apt-get install -y flatpak
-
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
     local flatpak_apps=(
@@ -306,25 +298,20 @@ install_flatpaks() {
         "com.rtosta.zapzap"
         "com.tutanota.Tutanota"
         "me.proton.Pass"
-        "me.proton.authenticator"
         "org.gnome.NetworkDisplays"
         "org.localsend.localsend_app"
     )
 
     for app in "${flatpak_apps[@]}"; do
         info "Installing $app..."
-        if flatpak install -y flathub "$app" 2>/dev/null; then
-            log "Installed: $app"
-        else
-            warn "Failed to install: $app"
-        fi
+        flatpak install -y --noninteractive flathub "$app" 2>/dev/null || warn "Failed: $app"
     done
 
     log "Flatpak installation complete"
 }
 
 # ============================================================================
-# SECTION 6: Install dev toolchains
+# SECTION 6: Dev toolchains
 # ============================================================================
 install_toolchains() {
     echo ""
@@ -333,121 +320,144 @@ install_toolchains() {
     local USER_HOME="/home/olyxz"
     local USER_NAME="olyxz"
 
-    # --- nvm (Node Version Manager) ---
+    # nvm
     info "Installing nvm..."
-    su - "$USER_NAME" -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash'
-    su - "$USER_NAME" -c 'export NVM_DIR="$USER_HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; nvm install v22.22.0 && nvm install v24.13.0 && nvm alias default v22.22.0'
-    log "nvm + Node v22.22.0 & v24.13.0 installed"
+    [ -f "$USER_HOME/.nvm/nvm.sh" ] || \
+        su - "$USER_NAME" -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash'
+    su - "$USER_NAME" -c '
+        export NVM_DIR="$HOME/.nvm"; source "$NVM_DIR/nvm.sh"
+        nvm ls v22.22.0 >/dev/null 2>&1 || nvm install v22.22.0
+        nvm ls v24.13.0 >/dev/null 2>&1 || nvm install v24.13.0
+        nvm alias default v22.22.0
+    '
+    log "nvm installed"
 
-    # --- Bob (Neovim version manager) ---
+    # Bob + Neovim
     info "Installing Bob (neovim version manager)..."
-    su - "$USER_NAME" -c 'curl -fsSL https://github.com/MordechaiHadad/bob/releases/latest/download/bob-linux-x86_64.zip -o /tmp/bob.zip && cd /tmp && unzip -o bob.zip && mkdir -p ~/.local/bin && cp /tmp/bob-linux-x86_64/bob ~/.local/bin/bob && chmod +x ~/.local/bin/bob && rm -rf /tmp/bob.zip /tmp/bob-linux-x86_64' 2>/dev/null || {
-        warn "Bob install failed — install manually: https://github.com/MordechaiHadad/bob"
-    }
-    info "Installing Neovim latest via Bob..."
-    su - "$USER_NAME" -c 'export PATH="$USER_HOME/.local/bin:$PATH"; bob install latest && bob use latest' 2>/dev/null || {
-        warn "Bob neovim install failed — run 'bob install latest && bob use latest' manually after login"
-    }
+    if [ ! -f "$USER_HOME/.local/bin/bob" ]; then
+        su - "$USER_NAME" -c '
+            curl -fsSL https://github.com/MordechaiHadad/bob/releases/latest/download/bob-linux-x86_64.zip -o /tmp/bob.zip
+            cd /tmp && unzip -o bob.zip
+            mkdir -p ~/.local/bin
+            cp /tmp/bob-linux-x86_64/bob ~/.local/bin/bob
+            chmod +x ~/.local/bin/bob
+            rm -rf /tmp/bob.zip /tmp/bob-linux-x86_64
+        '
+    fi
+    su - "$USER_NAME" -c '
+        export PATH="$HOME/.local/bin:$PATH"
+        bob list 2>/dev/null | grep -q "nightly\|latest" || (bob install latest && bob use latest)
+    ' || warn "Bob neovim install failed — run manually after login"
+    log "Neovim installed via Bob"
 
-    # --- Rust (rustup) ---
-    info "Installing rustup..."
-    su - "$USER_NAME" -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
-    log "Rust installed via rustup"
+    # Rust
+    info "Installing Rust..."
+    [ -f "$USER_HOME/.cargo/bin/rustc" ] || \
+        su - "$USER_NAME" -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+    log "Rust installed"
 
-    # --- Go ---
+    # Go
     info "Installing Go..."
-    apt-get install -y golang-go 2>/dev/null || {
-        warn "golang-go not in repos, installing manually..."
+    if [ ! -f /usr/local/go/bin/go ]; then
         GO_VERSION="1.24.3"
         curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
         rm -rf /usr/local/go
         tar -C /usr/local -xzf /tmp/go.tar.gz
         rm /tmp/go.tar.gz
         echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
-    }
+    fi
     log "Go installed"
 
-    # --- Opencode ---
+    # Opencode
     info "Installing Opencode..."
-    su - "$USER_NAME" -c 'curl -fsSL https://opencode.ai/install | bash'
+    [ -f "$USER_HOME/.opencode/bin/opencode" ] || \
+        su - "$USER_NAME" -c 'curl -fsSL https://opencode.ai/install | bash'
     log "Opencode installed"
 
-    # --- Zed ---
-    info "Installing Zed editor..."
-    su - "$USER_NAME" -c 'curl -f https://zed.dev/install.sh | sh'
+    # Zed
+    info "Installing Zed..."
+    [ -f "$USER_HOME/.local/bin/zed" ] || \
+        su - "$USER_NAME" -c 'curl -f https://zed.dev/install.sh | sh'
     log "Zed installed"
 
-    # --- Devbox ---
-    info "Installing devbox..."
-    su - "$USER_NAME" -c 'curl -fsSL https://get.jetify.com/devbox | bash'
+    # Devbox
+    info "Installing Devbox..."
+    [ -f /usr/local/bin/devbox ] || \
+        su - "$USER_NAME" -c 'curl -fsSL https://get.jetify.com/devbox | bash'
     log "Devbox installed"
 
-    # --- SDKMAN (Java) ---
+    # SDKMAN + Java
     info "Installing SDKMAN..."
-    su - "$USER_NAME" -c 'curl -s "https://get.sdkman.io" | bash'
-    su - "$USER_NAME" -c 'export SDKMAN_DIR="$USER_HOME/.sdkman"; [ -s "$HOME/.sdkman/bin/sdkman-init.sh" ] && source "$HOME/.sdkman/bin/sdkman-init.sh"; sdk install java 8.0.482-tem; sdk install java 21.0.6-tem'
-    log "SDKMAN + Java 8 & 21 installed"
+    if [ ! -f "$USER_HOME/.sdkman/bin/sdkman-init.sh" ]; then
+        su - "$USER_NAME" -c 'curl -s "https://get.sdkman.io" | bash'
+    fi
+    su - "$USER_NAME" -c '
+        export SDKMAN_DIR="$HOME/.sdkman"
+        source "$SDKMAN_DIR/bin/sdkman-init.sh"
+        sdk list java | grep -q "8.0.482-tem"  || sdk install java 8.0.482-tem
+        sdk list java | grep -q "21.0.6-tem"   || sdk install java 21.0.6-tem
+    ' || warn "SDKMAN Java install failed"
+    log "SDKMAN + Java installed"
 
-    # --- k9s ---
-    info "Installing k9s system-wide"
-    curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | tar -xzf - -C /usr/local/bin k9s
+    # k9s
+    info "Installing k9s..."
+    [ -f /usr/local/bin/k9s ] || \
+        curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz \
+        | tar -xzf - -C /usr/local/bin k9s
     log "k9s installed"
 
-    # --- Docker post-install ---
-    info "Configuring Docker..."
-    usermod -aG docker "$USER_NAME"
-    systemctl enable docker
-    systemctl start docker
-    log "Docker configured (user added to docker group)"
-
-    # --- Tailscale ---
-    info "Configuring Tailscale..."
-    systemctl enable tailscaled
-    systemctl start tailscaled
-    log "Tailscale enabled (run 'tailscale up' to connect)"
+    # Docker post-install
+    usermod -aG docker olyxz
+    systemctl enable --now docker
+    systemctl enable --now tailscaled
 
     log "Dev toolchains installed"
 }
 
 # ============================================================================
-# SECTION 7 : Dotfiles
+# SECTION 7: Dotfiles
 # ============================================================================
-
 setup_dotfiles() {
     echo ""
     echo ">>> [7/8] Setting up dotfiles..."
 
-    git clone https://github.com/Olyxz16/dotfiles .dotfiles
-    cd ~/.dotfiles
-    stow bash nvim sway waybar yazi
+    local USER_HOME="/home/olyxz"
+    local USER_NAME="olyxz"
+    local DOTFILES_DIR="$USER_HOME/.dotfiles"
 
+    if [ ! -d "$DOTFILES_DIR/.git" ]; then
+        su - "$USER_NAME" -c "git clone https://github.com/Olyxz16/dotfiles $DOTFILES_DIR"
+    else
+        info "Dotfiles already cloned, skipping"
+    fi
+
+    su - "$USER_NAME" -c "cd $DOTFILES_DIR && stow bash nvim sway waybar yazi"
+    log "Dotfiles configured"
 }
 
 # ============================================================================
-# SECTION 8: Post-install configuration & summary
+# SECTION 8: Summary
 # ============================================================================
 post_install() {
     echo ""
-    echo ">>> [8/8] Provisionning complete !"
+    echo ">>> [8/8] Provisioning complete!"
 
     if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
         echo -e "${YELLOW}Failed packages (${#FAILED_PACKAGES[@]}):${NC}"
         for pkg in "${FAILED_PACKAGES[@]}"; do
             echo "  - $pkg"
         done
-        echo ""
     fi
 
     echo ""
     echo -e "${BLUE}=== Post-install steps ===${NC}"
-    echo ""
-    echo "  Log out and back in for Docker group to take effect"
-    echo ""
-    echo -e "${GREEN}Done! Your system is set up.${NC}"
+    echo "  - Log out and back in for Docker group to take effect"
+    echo "  - Run 'tailscale up' to connect"
+    echo -e "${GREEN}Done!${NC}"
 }
 
 # ============================================================================
-# Main execution
+# Main
 # ============================================================================
 main() {
     preflight
