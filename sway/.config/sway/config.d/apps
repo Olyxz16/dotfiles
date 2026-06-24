@@ -2,7 +2,11 @@ for_window [app_id="proton-authenticator"] floating enable
 for_window [app_id="me.proton.Pass"] floating enable
 for_window [class="Bitwarden"] floating enable
 for_window [app_id="com.rtosta.zapzap"] floating enable
+
 for_window [app_id="org.mozilla.thunderbird"] floating enable
+for_window [app_id="org.mozilla.thunderbird"] move to scratchpad
+bindsym $mod+m [app_id="org.mozilla.thunderbird"] scratchpad show
+
 
 assign [class="discord"] workspace number 2
 assign [app_id="Notesnook"] workspace number 3
