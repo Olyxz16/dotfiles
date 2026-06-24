@@ -209,7 +209,7 @@ install_apt_packages() {
         python3-pip python3-netifaces qemu-system-x86 qemu-utils ripgrep
         screen sqlite3 stow texlive-full tree vulkan-tools wayland-protocols
         wget xclip zoxide
-        sway swaybg swayidle swaylock waybar fuzzel
+        sway swaybg swayidle swaylock waybar fuzzel wl-mirror mako-notifier kanshi
         gnome-tweaks gparted
         ibus-table-cangjie-big ibus-table-cangjie3 ibus-table-cangjie5
         libchewing3 libchewing3-data libm17n-0 libopencc-data libopencc1.1
