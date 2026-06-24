@@ -7,7 +7,7 @@ vim.keymap.set('n', '<c-j>', '<cmd>wincmd j<CR>')
 vim.keymap.set('n', '<c-h>', '<cmd>wincmd h<CR>')
 vim.keymap.set('n', '<c-l>', '<cmd>wincmd l<CR>')
 
-vim.keymap.set('n', '<leader>tr', vim.diagnostic.setqflist, { desc = "Diagnostic Quickfix" })
+vim.keymap.set('n', '<leader>tr', function() require("trouble").toggle("diagnostics") end, { desc = "Trouble diagnostics" })
 
 vim.keymap.set('n', '<Tab>', function()
     local line = vim.api.nvim_get_current_line()
