@@ -399,6 +399,10 @@ install_toolchains() {
     ' || warn "SDKMAN Java install failed"
     log "SDKMAN + Java installed"
 
+    info "Installing lf"
+    env CGO_ENABLED=0 go install -trimpath -ldflags="-s -w" github.com/gokcehan/lf@latest
+    log "lf installed"
+
     # k9s
     info "Installing k9s..."
     [ -f /usr/local/bin/k9s ] || \
@@ -431,7 +435,7 @@ setup_dotfiles() {
         info "Dotfiles already cloned, skipping"
     fi
 
-    su - "$USER_NAME" -c "cd $DOTFILES_DIR && stow bash nvim sway waybar yazi"
+    su - "$USER_NAME" -c "cd $DOTFILES_DIR && stow bash nvim sway waybar yazi lf"
     log "Dotfiles configured"
 }
 

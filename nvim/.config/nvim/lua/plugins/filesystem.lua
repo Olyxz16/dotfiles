@@ -1,5 +1,27 @@
 return {
     {
+        "lmburns/lf.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+            "akinsho/toggleterm.nvim",
+        },
+        config = function()
+            require("lf").setup({
+                escape_quit = false,
+                border = "rounded",
+                winblend = 0,
+                dir = "",
+                focus_on_open = true,
+                mappings = true,
+
+                height = math.floor(vim.o.lines * 0.80),
+                width = math.floor(vim.o.columns * 0.85),
+            })
+
+            vim.keymap.set("n", "<leader>e", "<cmd>Lf<CR>", { desc = "Open lf file manager" })
+        end,
+    },
+    --[[{
         "Olyxz16/triad.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
@@ -9,8 +31,8 @@ return {
             require("triad").setup()
         end,
         cmd = "Triad",
-    },
-    {
+    },]]--
+    --[[{
         "mikavilpas/yazi.nvim",
         version = "*", -- use the latest stable version
         event = "VeryLazy",
@@ -41,7 +63,7 @@ return {
             -- More details: https://github.com/mikavilpas/yazi.nvim/issues/802
             vim.g.loaded_netrwPlugin = 1
         end,
-    },
+    },]]--
     {
         "ThePrimeagen/harpoon",
         dependencies = {

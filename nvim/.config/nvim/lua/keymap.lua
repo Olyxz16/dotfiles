@@ -22,3 +22,7 @@ vim.keymap.set('n', '<Tab>', function()
         return 'i'
     end
 end, { expr = true, noremap = true, desc = "Smart context-aware insert" })
+
+vim.keymap.set('n', '<leader>fd', function() 
+    vim.cmd("silent !firefox %")
+end, {})
