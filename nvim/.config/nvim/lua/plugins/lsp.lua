@@ -77,6 +77,16 @@ return {
                     local client = vim.lsp.get_client_by_id(args.data.client_id)
                     if not client then return end
 
+                    -- Detach LSP from non-file buffers (e.g., diffview, oil)
+                    local bufname = vim.api.nvim_buf_get_name(args.buf)
+                    if bufname:match("^%a+://") then
+                        vim.lsp.buf_detach_client(args.buf, client.id)
+                        return
+                    end
+
+                    -- Disable semantic tokens to avoid highlight conflicts
+                    client.server_capabilities.semanticTokensProvider = nil
+
                     -- Keymaps
                     vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
                     vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, opts)

@@ -2,9 +2,6 @@ return {
     "saghen/blink.cmp",
     event = "InsertEnter",
     version = "1.*",
-    dependencies = {
-        "rafamadriz/friendly-snippets",
-    },
     opts = {
         keymap = {
             preset = "enter",
@@ -25,11 +22,16 @@ return {
                 auto_show = false,
             },
             ghost_text = {
-                enabled = false,
+                enabled = true,
             },
         },
         sources = {
             default = { "lsp", "path", "buffer" },
+            providers = {
+                lsp = {
+                    score_offset = 1000,
+                },
+            },
         },
         fuzzy = {
             implementation = "prefer_rust_with_warning",

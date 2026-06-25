@@ -15,7 +15,6 @@ vim.opt.shada = ""
 
 vim.opt.completeopt = { "menu", "menuone", "noselect" }
 
-vim.opt.statusline = "%#StatusLine# %m %f %= %y %l:%c"
 
 -- Set winborder for floating windows (replaces old vim.lsp.handlers border hacks)
 vim.o.winborder = 'rounded'
