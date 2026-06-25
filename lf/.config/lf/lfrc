@@ -32,3 +32,23 @@ cmd on-load &{{
 
     lf -remote "send $id :$cmds"
 }}
+
+cmd create %{{
+    printf "create (end with / for dir): "
+    read -r ans
+    [ -z "$ans" ] && exit 0
+    case "$ans" in
+        */) mkdir -p -- "$ans" ;;
+        *)  mkdir -p -- "$(dirname -- "$ans")"
+            touch -- "$ans" ;;
+    esac
+    lf -remote "send $id reload"
+}}
+map a create
+
+cmd rename %[ -e "$1" ] && printf "file exists" || mv "$f" "$1"
+map r push :rename<space>
+
+%mkdir -p ~/.trash
+cmd trash %set -f; mv -t ~/.trash -- $fx
+map d trash
