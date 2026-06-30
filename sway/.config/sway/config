@@ -221,6 +221,9 @@ bindsym $mod+r mode "resize"
     bindsym Print exec grimshot copy anything
     # Toggle light/dark mode
     bindsym $mod+F3 exec bash $HOME/.config/sway/scripts/color-scheme-toggle.sh
+    # Change screen share mode
+    bindsym $mod+p exec bash $HOME/.config/sway/scripts/mirror-screen.sh mirror
+    bindsym $mod+Shift+p exec bash $HOME/.config/sway/scripts/mirror-screen.sh extend
 
 # Set initial theme on startup
 exec bash ~/.config/sway/scripts/waybar-init.sh
