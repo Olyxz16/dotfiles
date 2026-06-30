@@ -35,7 +35,17 @@ case "$1" in
             scale=$scale_h
         fi
 
-        wlr-randr --output "$INTERNAL" --pos 0,0 --output "$EXTERNAL" --pos 0,0 --scale "$scale"
+        # Compute external logical size after scaling
+        ext_logical_w=$(awk "BEGIN {printf \"%.0f\", $ext_w / $scale}")
+        ext_logical_h=$(awk "BEGIN {printf \"%.0f\", $ext_h / $scale}")
+
+        # Center the internal desktop inside the external viewport
+        offset_x=$(awk "BEGIN {printf \"%.0f\", ($ext_logical_w - $int_w) / 2}")
+        offset_y=$(awk "BEGIN {printf \"%.0f\", ($ext_logical_h - $int_h) / 2}")
+
+        # Negative position so the internal desktop (at 0,0) is centered
+        # within the external output's larger logical viewport
+        wlr-randr --output "$INTERNAL" --pos 0,0 --output "$EXTERNAL" --pos "-$offset_x,-$offset_y" --scale "$scale"
         notify-send "Screen Share" "Mirrored to $EXTERNAL (scale: $scale)"
         ;;
     extend)
