@@ -9,6 +9,14 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
+# Read the active global background setting from the sway config
+get_default_bg() {
+    local config_file="$HOME/.config/sway/config"
+    if [ -f "$config_file" ]; then
+        grep -m1 "^output \* bg " "$config_file" | sed 's/^output \* bg //'
+    fi
+}
+
 case "$1" in
     mirror)
         # Verify external display exists
@@ -46,11 +54,23 @@ case "$1" in
         # Negative position so the internal desktop (at 0,0) is centered
         # within the external output's larger logical viewport
         wlr-randr --output "$INTERNAL" --pos 0,0 --output "$EXTERNAL" --pos "-$offset_x,-$offset_y" --scale "$scale"
+
+        # Make the external monitor's unused border area pure black
+        swaymsg output "$EXTERNAL" bg "#000000" solid_color
+
         notify-send "Screen Share" "Mirrored to $EXTERNAL (scale: $scale)"
         ;;
     extend)
         read -r int_w int_h < <(swaymsg -t get_outputs | jq -r --arg name "$INTERNAL" '.[] | select(.name == $name) | "\(.rect.width) \(.rect.height)"')
         wlr-randr --output "$INTERNAL" --pos 0,0 --output "$EXTERNAL" --pos "${int_w},0" --scale 1
+
+        # Restore the external monitor's background to the user's default wallpaper
+        default_bg=$(get_default_bg)
+        if [ -n "$default_bg" ]; then
+            # shellcheck disable=SC2086
+            swaymsg output "$EXTERNAL" bg $default_bg
+        fi
+
         notify-send "Screen Share" "Extended mode restored"
         ;;
     *)
