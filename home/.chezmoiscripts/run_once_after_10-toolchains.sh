@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# Note: we intentionally omit -u because several third-party init scripts
+# (nvm, SDKMAN, etc.) reference variables that may be unset.
+set -eo pipefail
 
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
