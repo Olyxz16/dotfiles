@@ -21,7 +21,7 @@ return {
             vim.keymap.set("n", "<leader>e", "<cmd>Lf<CR>", { desc = "Open lf file manager" })
         end,
     },
-    --[[{
+    {
         "Olyxz16/triad.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
@@ -31,7 +31,7 @@ return {
             require("triad").setup()
         end,
         cmd = "Triad",
-    },]]--
+    },
     --[[{
         "mikavilpas/yazi.nvim",
         version = "*", -- use the latest stable version
