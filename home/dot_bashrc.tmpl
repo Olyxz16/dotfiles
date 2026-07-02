@@ -162,7 +162,7 @@ export PROMPT_COMMAND=update_devbox_prompt
 eval "$(direnv hook bash)"
 
 # opencode
-export PATH=/home/olyxz/.opencode/bin:$PATH
+export PATH=$HOME/.opencode/bin:$PATH
 
 # Ollama vulkan
 export OLLAMA_VULKAN=1
@@ -178,4 +178,4 @@ fi
 export PATH="$HOME/.dotnet:$PATH"
 
 # Added by LM Studio CLI tool (lms)
-export PATH="$PATH:/home/olyxz/.lmstudio/bin"
+export PATH="$PATH:$HOME/.lmstudio/bin"

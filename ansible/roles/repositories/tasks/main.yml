@@ -1,0 +1,38 @@
+---
+- name: Ensure apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Fetch third-party GPG keys
+  ansible.builtin.shell: |
+    set -o pipefail
+    curl -fsSL {{ item.gpg_url }} | gpg --dearmor > {{ item.gpg_dest }}
+  args:
+    creates: "{{ item.gpg_dest }}"
+  loop: "{{ apt_repositories + apt_repositories_deb822 }}"
+
+- name: Set GPG key permissions
+  ansible.builtin.file:
+    path: "{{ item.gpg_dest }}"
+    mode: '0644'
+  loop: "{{ apt_repositories + apt_repositories_deb822 }}"
+
+- name: Add legacy apt repositories
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo_line }}"
+    filename: "{{ item.name }}"
+    state: present
+  loop: "{{ apt_repositories }}"
+
+- name: Add DEB822 apt repositories
+  ansible.builtin.template:
+    src: repo.sources.j2
+    dest: "/etc/apt/sources.list.d/{{ item.name }}.sources"
+    mode: '0644'
+  loop: "{{ apt_repositories_deb822 }}"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true

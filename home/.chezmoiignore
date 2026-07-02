@@ -1,0 +1,5 @@
+# Repository metadata and orchestration files live at repo root, but this is
+# a safety net in case they are ever copied into the chezmoi source tree.
+ansible/
+README.md
+provision.sh

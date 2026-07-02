@@ -1,0 +1,11 @@
+{{ $email := promptString "email" -}}
+{{ $name := promptString "full name" -}}
+{{ $gpu := promptBool "does this machine have a dedicated GPU" true -}}
+
+[data]
+    email = {{ $email | quote }}
+    name = {{ $name | quote }}
+    gpu = {{ $gpu }}
+
+[pass]
+    command = "pass"
