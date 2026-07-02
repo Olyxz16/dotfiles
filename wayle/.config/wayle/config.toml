@@ -1,0 +1,61 @@
+[bar]
+location = "top"
+scale = 0.95
+padding = 0.15
+padding-ends = 0.5
+module-gap = 0.35
+button-icon-size = 0.8
+button-label-size = 0.8
+button-icon-padding = 0.6
+button-label-padding = 0.6
+button-gap = 0.6
+
+[[bar.layout]]
+monitor = "*"
+left = ["hyprland-workspaces"]
+center = ["clock"]
+right = ["cpu", "ram", "idle-inhibit", "brightness", "volume", "network", "battery", "systray"]
+
+[modules.hyprland-workspaces]
+min-workspace-count = 10
+display-mode = "label"
+numbering = "absolute"
+active-indicator = "background"
+monitor-specific = true
+show-special = false
+active-color = "accent"
+occupied-color = "fg-default"
+empty-color = "fg-default"
+
+[modules.clock]
+format = "%H:%M"
+
+[modules.idle-inhibit]
+label-show = false
+startup-duration = 0
+icon-active = "tb-coffee-symbolic"
+icon-inactive = "tb-coffee-off-symbolic"
+left-click = "wayle idle toggle --indefinite"
+
+[modules.brightness]
+[modules.volume]
+[modules.network]
+[modules.battery]
+[modules.systray]
+
+[styling]
+scale = 1.0
+rounding = "sm"
+
+[styling.palette]
+bg = "#232136"
+surface = "#2a273f"
+elevated = "#44415a"
+fg = "#e0def4"
+fg-muted = "#908caa"
+fg-subtle = "#6e6a86"
+primary = "#c4a7e7"
+red = "#eb6f92"
+yellow = "#f6c177"
+green = "#3e8fb0"
+blue = "#9ccfd8"
