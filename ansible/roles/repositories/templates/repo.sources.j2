@@ -1,8 +1,0 @@
-Types: deb
-URIs: {{ item.uris }}
-Suites: {{ item.suites }}
-Components: {{ item.components }}
-{% if item.architectures is defined %}
-Architectures: {{ item.architectures }}
-{% endif %}
-Signed-By: {{ item.gpg_dest }}
