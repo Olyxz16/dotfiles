@@ -31,7 +31,8 @@ FAILED_PACKAGES=()
 #   gpg_dest  - where to save the key on disk
 #   repo_line - the full "deb [signed-by=...] ..." line
 #
-# The key file is only downloaded if it doesn't already exist.
+# The key file is refreshed on every run, but only replaced if the download
+# succeeds and the file is a valid OpenPGP key.
 # The .list file is only written if it doesn't already exist or its content changed.
 # ============================================================================
 declare -a REPOS=(
@@ -71,17 +72,37 @@ write_if_changed() {
     return 1  # written
 }
 
-# Fetches a GPG key (handles both armored .asc and binary .gpg)
+# Fetches a GPG key (handles both armored .asc and binary .gpg).
+# Always downloads a fresh copy, but validates it before replacing the existing
+# key. If the download/validation fails, the existing key is preserved.
 fetch_gpg_key() {
     local url="$1"
     local dest="$2"
-    if [ -f "$dest" ]; then
-        return 0
-    fi
     info "Fetching GPG key: $url"
     local tmp
     tmp=$(mktemp)
-    curl -fsSL "$url" -o "$tmp"
+
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        rm -f "$tmp"
+        if [ -f "$dest" ]; then
+            warn "Failed to refresh GPG key from $url; keeping existing $dest"
+        else
+            warn "Failed to fetch GPG key from $url; no existing key at $dest"
+        fi
+        return 1
+    fi
+
+    # Validate that we got a real OpenPGP key before replacing anything
+    if ! gpg --show-keys "$tmp" >/dev/null 2>&1; then
+        rm -f "$tmp"
+        if [ -f "$dest" ]; then
+            warn "Downloaded GPG key from $url is invalid; keeping existing $dest"
+        else
+            warn "Downloaded GPG key from $url is invalid; no existing key at $dest"
+        fi
+        return 1
+    fi
+
     # Detect if armored (ASCII) and dearmor if needed
     if file "$tmp" | grep -q "PGP public key block\|OpenPGP Public Key\|ASCII"; then
         gpg --dearmor < "$tmp" > "$dest"
@@ -89,6 +110,44 @@ fetch_gpg_key() {
         cp "$tmp" "$dest"
     fi
     chmod 644 "$dest"
+    rm -f "$tmp"
+    info "Refreshed GPG key: $dest"
+}
+
+# Idempotently enable contrib/non-free/non-free-firmware components for all
+# deb/deb-src lines in a .list file. Safe to re-run; only writes if changed.
+ensure_components() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+
+    local tmp
+    tmp=$(mktemp)
+    local changed=0
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line#"${line%%[![:space:]]*}"}"
+
+        # Preserve comments and blank lines
+        [[ "$trimmed" =~ ^# ]] && { printf '%s\n' "$line"; continue; }
+        [[ -z "$trimmed" ]] && { printf '%s\n' "$line"; continue; }
+
+        # Only process deb/deb-src lines
+        if [[ "$trimmed" =~ ^deb(-src)?[[:space:]]+ ]]; then
+            for component in contrib non-free non-free-firmware; do
+                if [[ " $line " != *" $component "* ]]; then
+                    line="$line $component"
+                    changed=1
+                fi
+            done
+        fi
+
+        printf '%s\n' "$line"
+    done < "$file" > "$tmp"
+
+    if [ "$changed" -eq 1 ]; then
+        cat "$tmp" > "$file"
+        info "Enabled non-free components in $file"
+    fi
     rm -f "$tmp"
 }
 
@@ -171,7 +230,11 @@ system_update() {
     apt-get update -y
     apt-get upgrade -y
 
-    sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/official-package-repositories.list 2>/dev/null || true
+    # Enable contrib/non-free/non-free-firmware across Debian/Ubuntu/Mint
+    ensure_components /etc/apt/sources.list
+    for f in /etc/apt/sources.list.d/*.list; do
+        ensure_components "$f"
+    done
 
     apt-get update -y
     log "System updated and non-free repos enabled"
@@ -197,7 +260,9 @@ install_apt_packages() {
     echo ">>> [4/8] Installing apt packages..."
 
     info "Enabling i386 multiarch for Steam..."
-    dpkg --add-architecture i386 2>/dev/null || true
+    if ! dpkg --print-foreign-architectures | grep -qx i386; then
+        dpkg --add-architecture i386
+    fi
     apt-get update -y 2>/dev/null || true
 
     local debian_packages=(
@@ -353,14 +418,28 @@ install_toolchains() {
 
     # Rust
     info "Installing Rust..."
-    [ -f "$USER_HOME/.cargo/bin/rustc" ] || \
+    if [ -f "$USER_HOME/.cargo/bin/rustc" ]; then
+        su - "$USER_NAME" -c '$HOME/.cargo/bin/rustup update'
+    else
         su - "$USER_NAME" -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+    fi
     log "Rust installed"
 
     # Go
     info "Installing Go..."
+    GO_VERSION="1.24.3"
+    local install_go=0
     if [ ! -f /usr/local/go/bin/go ]; then
-        GO_VERSION="1.24.3"
+        install_go=1
+    else
+        local current_go
+        current_go=$(/usr/local/go/bin/go version | awk '{print $3}' | sed 's/^go//')
+        if [ "$current_go" != "$GO_VERSION" ]; then
+            info "Go $current_go installed, updating to $GO_VERSION"
+            install_go=1
+        fi
+    fi
+    if [ "$install_go" -eq 1 ]; then
         curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
         rm -rf /usr/local/go
         tar -C /usr/local -xzf /tmp/go.tar.gz
@@ -404,7 +483,7 @@ install_toolchains() {
     info "Installing lf..."
     su - "$USER_NAME" -c '
         export PATH="/usr/local/go/bin:$HOME/.local/bin:$PATH"
-        if command -v go >/dev/null 2>&1 && [ ! -f "$HOME/.local/bin/lf" ]; then
+        if command -v go >/dev/null 2>&1; then
             env CGO_ENABLED=0 go install -trimpath -ldflags="-s -w" github.com/gokcehan/lf@latest
         fi
     ' || warn "lf install failed"
@@ -412,9 +491,14 @@ install_toolchains() {
 
     # k9s
     info "Installing k9s..."
-    [ -f /usr/local/bin/k9s ] || \
-        curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz \
-        | tar -xzf - -C /usr/local/bin k9s
+    curl -fsSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -o /tmp/k9s.tar.gz
+    tar -xzf /tmp/k9s.tar.gz -C /tmp k9s
+    if [ ! -f /usr/local/bin/k9s ] || ! cmp -s /tmp/k9s /usr/local/bin/k9s; then
+        cp /tmp/k9s /usr/local/bin/k9s
+        chmod +x /usr/local/bin/k9s
+        info "k9s installed/updated"
+    fi
+    rm -f /tmp/k9s.tar.gz /tmp/k9s
     log "k9s installed"
 
     # Docker post-install
@@ -442,7 +526,7 @@ setup_dotfiles() {
         info "Dotfiles already cloned, skipping"
     fi
 
-    su - "$USER_NAME" -c "cd $DOTFILES_DIR && stow bash hypr lf nvim sway waybar wayle yazi"
+    su - "$USER_NAME" -c "cd $DOTFILES_DIR && ./stow-all.sh"
     log "Dotfiles configured"
 }
 
