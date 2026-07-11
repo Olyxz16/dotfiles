@@ -484,7 +484,7 @@ install_toolchains() {
     su - "$USER_NAME" -c '
         export PATH="/usr/local/go/bin:$HOME/.local/bin:$PATH"
         if command -v go >/dev/null 2>&1; then
-            env CGO_ENABLED=0 go install -trimpath -ldflags="-s -w" github.com/gokcehan/lf@latest
+            env CGO_ENABLED=0 go install -trimpath -ldflags="-s -w" github.com/Olyxz16/lf@latest
         fi
     ' || warn "lf install failed"
     log "lf installed"
