@@ -11,20 +11,6 @@ return {
             use_nvim_cmp_as_default = false,
             nerd_font_variant = "mono",
         },
-        completion = {
-            menu = {
-                border = "none",
-                draw = {
-                    columns = { { "label", "label_description", gap = 1 }, { "kind" } },
-                },
-            },
-            documentation = {
-                auto_show = false,
-            },
-            ghost_text = {
-                enabled = true,
-            },
-        },
         sources = {
             default = { "lsp", "path", "buffer" },
             providers = {

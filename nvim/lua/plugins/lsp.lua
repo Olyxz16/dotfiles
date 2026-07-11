@@ -1,110 +1,19 @@
 return {
+    { "mason-org/mason.nvim", opts = {} },
     {
-        "williamboman/mason.nvim",
-        config = function()
-            require("mason").setup()
-        end,
+        "mason-org/mason-lspconfig.nvim",
+        dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
     },
     {
         "neovim/nvim-lspconfig",
-        event = { "BufReadPre", "BufNewFile" }, -- Lazy load LSP
+        event = { "BufReadPre", "BufNewFile" },
         dependencies = {
-            "williamboman/mason.nvim",
+            "mason-org/mason.nvim",
+            "mason-org/mason-lspconfig.nvim",
             "saghen/blink.cmp",
         },
         config = function()
-            -- 1. Setup Java Paths (Reads from OS Environment Variables)
-            local java_21 = vim.env.JAVA_21_HOME or "/usr/lib/jvm/default"
-            local java_8  = vim.env.JAVA_8_HOME or "/usr/lib/jvm/default"
-
-            -- 2. Configure Servers
-            vim.lsp.config("clangd", {
-                cmd = { "clangd", "--background-index", "--clang-tidy", "--query-driver=**/*gcc*,**/*g++*" },
-                filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
-                init_options = { fallbackFlags = { "-I" .. vim.fn.getcwd() .. "/include" } },
-            })
-
-            vim.lsp.config("html", { filetypes = { "html", "templ" } })
-
-            vim.lsp.config("cssls", {
-                filetypes = { "css", "scss", "less" },
-                settings = { css = { lint = { unknownAtRules = "ignore" } } },
-            })
-
-            vim.lsp.config("tailwindcss", {
-                filetypes = { "css", "templ", "astro", "javascript", "typescript", "html" },
-                init_options = { userLanguages = { templ = "html" } },
-            })
-
-            vim.lsp.config("jdtls", {
-                cmd = { "jdtls", "--java-executable", java_21 .. "/bin/java" },
-                root_markers = { ".git", "mvnw", "pom.xml", "build.gradle", ".classpath" },
-                filetypes = { "java" },
-                settings = {
-                    java = {
-                        configuration = {
-                            runtimes = {
-                                { name = "JavaSE-1.8", path = java_8, default = true },
-                                { name = "JavaSE-21", path = java_21 }
-                            }
-                        }
-                    }
-                }
-            })
-
-            vim.filetype.add({ extension = { svelte = "svelte" } })
-            vim.lsp.config("svelteserver", {
-                filetypes = { "svelte" },
-                init_options = { configurationSection = { "css", "svelte" } },
-            })
-
-            vim.lsp.config("ts_ls", {
-                filetypes = { "typescript", "typescriptreact", "typescript.tsx", "javascript", "javascriptreact", "javascript.jsx" },
-                settings = {
-                    completions = { completeFunctionCalls = true },
-                },
-            })
-
-            -- 3. Enable Servers Natively
-            vim.lsp.enable({ "clangd", "html", "cssls", "tailwindcss", "jdtls", "gopls", "svelte", "ts_ls" })
-
-            -- 4. Handle Attachments (Keymaps, Completion, Formatting)
-            vim.api.nvim_create_autocmd("LspAttach", {
-                callback = function(args)
-                    local opts = { buffer = args.buf }
-                    
-                    -- FIX: Safely extract the client from args.data.client_id
-                    local client = vim.lsp.get_client_by_id(args.data.client_id)
-                    if not client then return end
-
-                    -- Detach LSP from non-file buffers (e.g., diffview, oil)
-                    local bufname = vim.api.nvim_buf_get_name(args.buf)
-                    if bufname:match("^%a+://") then
-                        vim.lsp.buf_detach_client(args.buf, client.id)
-                        return
-                    end
-
-                    -- Disable semantic tokens to avoid highlight conflicts
-                    client.server_capabilities.semanticTokensProvider = nil
-
-                    -- Keymaps
-                    vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-                    vim.keymap.set("n", "<leader>gd", vim.lsp.buf.definition, opts)
-                    vim.keymap.set("n", "<leader>gr", vim.lsp.buf.references, opts)
-                    vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
-                    
-                    --[[-- Native Format on Save
-                    if client:supports_method("textDocument/formatting") then
-                        vim.api.nvim_create_autocmd("BufWritePre", {
-                            buffer = args.buf,
-                            callback = function()
-                                vim.lsp.buf.format({ bufnr = args.buf, id = client.id })
-                            end,
-                        })
-                    end
-                    ]]--
-                end,
-            })
+            require("lsp").setup()
         end,
     },
 }

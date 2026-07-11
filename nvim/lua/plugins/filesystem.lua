@@ -7,7 +7,7 @@ return {
         },
         config = function()
             require("lf").setup({
-                escape_quit = false,
+                escape_quit = true,
                 border = "rounded",
                 winblend = 0,
                 dir = "",
