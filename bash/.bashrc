@@ -125,10 +125,10 @@ fi
 
 export KUBECONFIG=~/.kube/config
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-. "$HOME/.cargo/env"
+#export NVM_DIR="$HOME/.nvm"
+#[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+#[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+#. "$HOME/.cargo/env"
 
 #export QTDIR=~/.Qt/6.10.2/gcc_64
 #export PATH="$QTDIR/bin:$PATH"
@@ -143,8 +143,8 @@ export PATH=$HOME/.nvm:$PATH
 
 PROMPT="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+#export SDKMAN_DIR="$HOME/.sdkman"
+#[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 export JAVA_8_HOME="$HOME/.sdkman/candidates/java/8.0.482-tem"
 export JAVA_21_HOME="$HOME/.sdkman/candidates/java/21.0.6-tem"
 
@@ -169,13 +169,3 @@ export OLLAMA_VULKAN=1
 
 # firefox x wayland
 export MOZ_ENABLE_WAYLAND=1
-
-# Auto-fix Discord Flatpak socket for Neovim
-export DISCORD_IPC_PATH="/run/user/$UID/app/com.discordapp.Discord/discord-ipc-0"
-if [ -e "$DISCORD_IPC_PATH" ]; then
-    ln -sf "$DISCORD_IPC_PATH" "/run/user/$UID/discord-ipc-0"
-fi
-export PATH="$HOME/.dotnet:$PATH"
-
-# Added by LM Studio CLI tool (lms)
-export PATH="$PATH:$HOME/.lmstudio/bin"
