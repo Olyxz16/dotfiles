@@ -1,0 +1,3 @@
+[submodule "yazi/plugins/gitignore.yazi"]
+	path = yazi/plugins/gitignore.yazi
+	url = https://github.com/carlosedp/gitignore.yazi

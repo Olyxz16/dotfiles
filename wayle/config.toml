@@ -1,3 +1,5 @@
+imports = ["themes/current.toml"]
+
 [bar]
 location = "top"
 scale = 0.95
@@ -13,8 +15,8 @@ button-gap = 0.6
 [[bar.layout]]
 monitor = "*"
 left = ["hyprland-workspaces"]
-center = ["clock"]
-right = ["cpu", "ram", "idle-inhibit", "brightness", "volume", "network", "battery", "systray"]
+center = ["clock", "weather"]
+right = ["cpu", "ram", "idle-inhibit", "brightness", "volume", "network", "bluetooth", "battery", "systray", "dashboard"]
 
 [modules.hyprland-workspaces]
 min-workspace-count = 10
@@ -42,20 +44,9 @@ left-click = "wayle idle toggle --indefinite"
 [modules.network]
 [modules.battery]
 [modules.systray]
+[modules.bluetooth]
+label-max-length = 8
 
 [styling]
 scale = 1.0
 rounding = "sm"
-
-[styling.palette]
-bg = "#232136"
-surface = "#2a273f"
-elevated = "#44415a"
-fg = "#e0def4"
-fg-muted = "#908caa"
-fg-subtle = "#6e6a86"
-primary = "#c4a7e7"
-red = "#eb6f92"
-yellow = "#f6c177"
-green = "#3e8fb0"
-blue = "#9ccfd8"

@@ -147,6 +147,7 @@ PROMPT="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 #[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 export JAVA_8_HOME="$HOME/.sdkman/candidates/java/8.0.482-tem"
 export JAVA_21_HOME="$HOME/.sdkman/candidates/java/21.0.6-tem"
+export ANDROID_HOME="$HOME/Android/Sdk"
 
 export DEVBOX_NO_PROMPT=true
 
@@ -163,6 +164,10 @@ eval "$(direnv hook bash)"
 
 # opencode
 export PATH=$HOME/.opencode/bin:$PATH
+
+#.NET
+export PATH=$HOME/.dotnet/:$PATH
+export DOTNET_ROOT=$HOME/.dotnet
 
 # Ollama vulkan
 export OLLAMA_VULKAN=1

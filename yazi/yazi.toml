@@ -4,6 +4,6 @@ url  = "local://*"
 run  = "git"
 
 [[plugin.prepend_fetchers]]
-id   = "git"
-url  = "local://*/"
-run  = "git"
+id   = "gitignore"
+url = "*"
+run  = "gitignore"

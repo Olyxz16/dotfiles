@@ -9,7 +9,18 @@ return {
                 variant = "auto",
                 dark_variant = "main",
             })
-            vim.cmd("colorscheme rose-pine")
         end
+    },
+    {
+        "ellisonleao/gruvbox.nvim",
+        name = "gruvbox",
+        priority = 1000,
+        config = function ()
+            require("gruvbox").setup({
+                variant = "auto",
+                dark_variant = "main",
+            })
+            vim.cmd("colorscheme gruvbox")
+        end, opts = {}
     }
 }

@@ -17,10 +17,10 @@ ADDRESS=$(echo "$WIN" | jq -r '.address')
 WS_NAME=$(echo "$WIN" | jq -r '.workspace.name')
 
 if [ "$WS_NAME" = "$SPECIAL_WS" ]; then
-    # Already in the scratchpad-like special workspace -> show/hide it
-    hyprctl dispatch togglespecialworkspace thunderbird >/dev/null
+    # In scratchpad -> move to current workspace without stealing focus
+    CURRENT_WS=$(hyprctl activeworkspace -j | jq -r '.name')
+    hyprctl dispatch movetoworkspacesilent "$CURRENT_WS",address:"$ADDRESS" >/dev/null
 else
     # Visible on a regular workspace -> stash it in the special workspace
-    hyprctl dispatch focuswindow "address:$ADDRESS" >/dev/null
-    hyprctl dispatch movetoworkspace "$SPECIAL_WS" >/dev/null
+    hyprctl dispatch movetoworkspacesilent "$SPECIAL_WS",address:"$ADDRESS" >/dev/null
 fi
