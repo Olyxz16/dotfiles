@@ -174,3 +174,11 @@ export OLLAMA_VULKAN=1
 
 # firefox x wayland
 export MOZ_ENABLE_WAYLAND=1
+
+# pnpm
+export PNPM_HOME="/home/olyxz/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+esac
+# pnpm end
