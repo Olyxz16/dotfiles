@@ -1,0 +1,89 @@
+# Noctalia v5 curated config.
+# Mirrors the previous wayle bar layout: top bar, workspaces left,
+# clock + weather center, sysmon/system controls right.
+# Styling is left to Noctalia's native defaults.
+
+[theme]
+mode   = "dark"        # dark | light | auto
+source = "builtin"
+builtin = "Gruvbox"    # matches the previous Gruvbox wayle theme
+pure_black_dark = false
+
+# Shell-wide time/date (used by the lock screen clock, home tab, calendar).
+[shell]
+time_format = "{:%H:%M}"   # lock screen clock: hours : minutes (24h)
+date_format = "%A, %x"     # lock screen date
+
+# Generate Qt / qt6ct and KColorScheme (Dolphin) themes from the palette
+[theme.templates]
+enable_builtin_templates = true
+builtin_ids = ["qt", "kcolorscheme"]
+
+[bar.default]
+position = "top"
+shadow   = false        # remove the drop shadow cast below the bar
+margin_ends = 0         # full-width bar (default 100 insets it from the screen edges)
+# Pill-style background for every widget (native, matches the wayle bar look)
+capsule         = true
+capsule_fill    = "surface_variant"
+capsule_opacity = 0.9
+capsule_border  = "outline"
+capsule_padding = 6
+start  = ["workspaces"]
+center = ["clock", "olyxz/caldav-todo:todo", "weather"]
+end    = ["sysmon", "caffeine", "brightness", "volume", "network", "bluetooth", "battery", "tray", "control-center"]
+
+# Disable the wallpaper transition animation. It was replaying a fade/wipe on
+# every workspace switch (Hyprland re-maps the wallpaper layer), causing a flash.
+[wallpaper]
+enabled             = true
+transition          = []   # no fade/wipe/zoom on wallpaper (re)application
+transition_duration = 0
+
+[widget.clock]
+format = "%H:%M"
+
+# Location feeds Weather, Night Light, and theme "auto".
+[location]
+auto_locate = true
+
+# Local vdir synced from Infomaniak CalDAV by vdirsyncer (systemd user timer).
+# Events are read from ~/.local/share/calendars; the todo plugin writes VTODOs
+# into ~/.local/share/todos and vdirsyncer pushes them back to the server.
+[calendar.account.local_vdir]
+type = "vdir"
+name = "Calendriers (vdirsyncer)"
+path = "~/.local/share/calendars"
+calendars = []
+
+# Idle + lock are handled natively by Noctalia (replaces hypridle + hyprlock).
+# The pre-action overlay fade dims the screen gently before each action.
+[idle]
+behavior_order = ["dim", "lock", "screen-off", "suspend"]
+pre_action_fade_seconds = 2.0
+
+# Dim brightness to 10% after 2 minutes idle (mirrors the old hypridle dim).
+[idle.behavior.dim]
+timeout = 120
+action = "command"
+command = "brightnessctl -s set 10%"
+resume_command = "brightnessctl -r"
+enabled = true
+
+# Lock the session after 5 minutes idle (native Noctalia lock screen).
+[idle.behavior.lock]
+timeout = 300
+action = "lock"
+enabled = true
+
+# Turn monitors off after 10 minutes idle (auto-on when you return).
+[idle.behavior.screen-off]
+timeout = 600
+action = "screen_off"
+enabled = true
+
+# Lock + suspend after 15 minutes idle.
+[idle.behavior.suspend]
+timeout = 900
+action = "lock_and_suspend"
+enabled = true
