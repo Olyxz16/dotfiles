@@ -44,3 +44,13 @@ vim.keymap.set(
         end
     }
 )
+
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+    callback = function()
+        vim.bo.tabstop = 2
+        vim.bo.shiftwidth = 2
+        vim.bo.expandtab = true
+        vim.bo.softtabstop = 2
+    end,
+})

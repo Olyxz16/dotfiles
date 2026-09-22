@@ -41,16 +41,12 @@ M.servers = {
     },
   },
 
-  csharp_ls = {
-    filetypes = { "cs" },
-  },
-
   svelte = {
     filetypes = { "svelte" },
     init_options = { configurationSection = { "css", "svelte" } },
   },
 
-  ts_ls = {
+  vtsls = {
     filetypes = {
       "typescript", "typescriptreact", "typescript.tsx",
       "javascript", "javascriptreact", "javascript.jsx",
