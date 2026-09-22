@@ -67,3 +67,16 @@ vim.keymap.set('n', '<leader>gH', '<cmd>DiffviewFileHistory<CR>', { desc = "Diff
 vim.keymap.set('n', '<leader>ln', function()
     vim.opt.relativenumber = not vim.opt.relativenumber:get()
 end, { desc = "Toggle relative line numbers" })
+
+-- Run the .NET app pinned to the non-windows TFM. This box is Linux, so
+-- `net10.0-windows10.0.19041.0` (UWP toast notifications) is never testable
+-- here; -f keeps that true even if TargetFrameworks gets reordered.
+vim.api.nvim_create_user_command('DotnetRun', function()
+    local bufdir = vim.fs.dirname(vim.api.nvim_buf_get_name(0))
+    local csproj = vim.fs.find(function(name)
+        return name:match('%.csproj$')
+    end, { upward = true, path = bufdir })[1]
+    local target = csproj and vim.fs.dirname(csproj) or vim.fn.getcwd()
+    vim.cmd('belowright 15split | terminal dotnet run --project ' .. vim.fn.shellescape(target) .. ' -f net10.0')
+end, { desc = 'Run dotnet app (net10.0)' })
+vim.keymap.set('n', '<leader>rr', '<cmd>DotnetRun<CR>', { desc = 'Run dotnet app (net10.0)' })

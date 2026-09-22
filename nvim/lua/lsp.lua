@@ -78,9 +78,12 @@ function M.setup()
   --  * automatic_enable  -> calls vim.lsp.enable() for every installed one,
   --                         which is what makes it attach automatically
   --                         when you open a matching filetype
+  -- roslyn_ls is excluded: the mason `roslyn-language-server` binary is
+  -- started by roslyn.nvim under the client name "roslyn" instead, and
+  -- enabling both would attach two C# servers to the same buffer.
   require("mason-lspconfig").setup({
     ensure_installed = vim.tbl_keys(M.servers),
-    automatic_enable = true,
+    automatic_enable = { exclude = { "roslyn_ls" } },
   })
 
   -- Buffer-local setup once a server attaches
