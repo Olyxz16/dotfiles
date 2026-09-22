@@ -47,7 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Packages that live under ~/.config/<name>
-CONFIG_PKGS=(hypr nvim wayle yazi)
+CONFIG_PKGS=(bash hypr noctalia nvim yazi)
 
 stow_pkg() {
     local target="$1"
