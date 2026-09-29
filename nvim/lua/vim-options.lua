@@ -15,11 +15,14 @@ vim.opt.shada = ""
 
 vim.opt.completeopt = { "menu", "menuone", "noselect" }
 
--- Map framework filetypes to their tree-sitter parser names (Neovim 0.12 has no
--- defaults for these). A parser for each target must exist under stdpath/site/parser.
-vim.treesitter.language.register("tsx", "typescriptreact")
-vim.treesitter.language.register("javascript", "javascriptreact")
-
+vim.opt.diffopt = {
+  "internal",
+  "filler",
+  "closeoff",
+  "algorithm:histogram",
+  "indent-heuristic",
+  "linematch:60",
+}
 
 -- Set winborder for floating windows (replaces old vim.lsp.handlers border hacks)
 vim.o.winborder = 'rounded'
