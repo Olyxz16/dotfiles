@@ -60,7 +60,6 @@ map('n', '<leader>gf', function()
 end, { desc = "Format buffer" })
 
 -- Diffview
-map('n', '<leader>gd', '<cmd>DiffviewOpen<CR>', { desc = "Diffview open" })
 map('n', '<leader>gc', '<cmd>DiffviewClose<CR>', { desc = "Diffview close" })
 map('n', '<leader>gh', '<cmd>DiffviewFileHistory %<CR>', { desc = "Diffview file history" })
 map('n', '<leader>gH', '<cmd>DiffviewFileHistory<CR>', { desc = "Diffview repo history" })
