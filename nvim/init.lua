@@ -27,4 +27,7 @@ require('vim._core.ui2').enable({})
 
 require("vim-options")
 require("keymap")
-require("lazy").setup("plugins")
+require("lazy").setup("plugins", {
+    -- Plugins kept in ~/dev are loaded from there; anything else is cloned.
+    dev = { path = "~/dev", fallback = true },
+})
