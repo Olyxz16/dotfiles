@@ -204,10 +204,10 @@ hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
 -- Move windows with mainMod + SHIFT + hjkl
-hl.bind(mainMod .. " + SHIFT + h", hl.dsp.exec_cmd("hyprctl dispatch movewindow l"))
-hl.bind(mainMod .. " + SHIFT + j", hl.dsp.exec_cmd("hyprctl dispatch movewindow d"))
-hl.bind(mainMod .. " + SHIFT + k", hl.dsp.exec_cmd("hyprctl dispatch movewindow u"))
-hl.bind(mainMod .. " + SHIFT + l", hl.dsp.exec_cmd("hyprctl dispatch movewindow r"))
+hl.bind(mainMod .. " + SHIFT + h", hl.dsp.window.move({ direction = "left" }))
+hl.bind(mainMod .. " + SHIFT + j", hl.dsp.window.move({ direction = "down" }))
+hl.bind(mainMod .. " + SHIFT + k", hl.dsp.window.move({ direction = "up" }))
+hl.bind(mainMod .. " + SHIFT + l", hl.dsp.window.move({ direction = "right" }))
 
 -- Switch workspaces with mainMod + [1-0] and move windows with mainMod + SHIFT + [1-0]
 -- AZERTY top-row key names (preserved from hyprland.conf)
@@ -224,8 +224,8 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:mag
 -- Lock with Noctalia's native lock screen (SUPER+L)
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("noctalia msg session lock"), { locked = true })
 
--- Fullscreen
-hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("hyprctl dispatch fullscreen 0"))
+-- Fullscreen (native dispatch; hyprctl dispatch is broken under the Lua IPC bridge in 0.56.x)
+hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
 -- Move/resize windows with mainMod + LMB/RMB and dragging
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
@@ -253,7 +253,12 @@ hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = tr
 
 -- Lock on lid close, wake display on lid open
 hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd("loginctl lock-session"), { locked = true })
-hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd("hyprctl dispatch dpms on"), { locked = true })
+hl.bind("switch:off:Lid Switch", function ()
+    -- dpms cannot be dispatched directly from a bind (see Hyprland wiki)
+    hl.timer(function ()
+        hl.dispatch(hl.dsp.dpms({ action = "on" }))
+    end, { timeout = 500, type = "oneshot" })
+end, { locked = true })
 
 
 --------------------------------

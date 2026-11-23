@@ -1,5 +1,9 @@
 local map = vim.keymap.set
 
+-- Remove Highlight search
+map('n', '<Esc>', "<cmd>nohlsearch<CR>")
+
+-- Pane split
 map('n', '<leader>tt', '<cmd>belowright split<CR>', { noremap = true, silent = true })
 
 -- Navigate vim panes better
@@ -22,8 +26,8 @@ map("n", "<leader>gl", "<cmd>Trouble lsp toggle<cr>", { desc = "All LSP info for
 
 map('n', '<Tab>', function()
     local line = vim.api.nvim_get_current_line()
-    local col = vim.api.nvim_win_get_cursor(0)[2] 
-    local first_non_blank = line:find("[^%s]") 
+    local col = vim.api.nvim_win_get_cursor(0)[2]
+    local first_non_blank = line:find("[^%s]")
 
     if not first_non_blank then
         return '"_cc'
@@ -34,8 +38,8 @@ map('n', '<Tab>', function()
     end
 end, { expr = true, noremap = true, desc = "Smart context-aware insert" })
 
-map('n', '<leader>fd', function() 
-    vim.cmd("silent !firefox %")
+map('n', '<leader>fd', function()
+    vim.cmd("silent !xdg-open %")
 end, {})
 
 -- Auto-center navigation
